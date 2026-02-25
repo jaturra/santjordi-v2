@@ -16,6 +16,15 @@ app.use((req, _res, next) => {
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+function asISO(d: Date) {
+  return d.toISOString();
+}
+
+function assertSuggestionSection(x: any): x is "FOOD" | "DESSERT" | "OTHER" {
+  return x === "FOOD" || x === "DESSERT" || x === "OTHER";
+}
+
+
 // Admin login endpoint
 app.post("/auth/login", (req, res) => {
   const { username, password } = req.body ?? {};
@@ -231,6 +240,37 @@ app.get("/menu", async (_req, res) => {
       code: a.code,
       label: a.label,
     })),
+  });
+});
+
+
+// Current Suggestions Sheet endpoint
+app.get("/suggestions/current", async (_req, res) => {
+  const sheet = await prisma.suggestionSheet.findFirst({
+    where: { isActive: true },
+    orderBy: { dateFrom: "desc" },
+    include: {
+      items: { orderBy: { order: "asc" } },
+    },
+  });
+
+  if (!sheet) return res.json({ sheet: null });
+
+  const food = sheet.items.filter((x) => x.section === "FOOD");
+  const desserts = sheet.items.filter((x) => x.section === "DESSERT");
+  const other = sheet.items.filter((x) => x.section === "OTHER");
+
+  return res.json({
+    sheet: {
+      id: sheet.id,
+      dateFrom: asISO(sheet.dateFrom),
+      dateTo: asISO(sheet.dateTo),
+      sections: {
+        food: food.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
+        desserts: desserts.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
+        other: other.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
+      },
+    },
   });
 });
 

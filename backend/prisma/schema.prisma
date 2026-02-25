@@ -80,3 +80,32 @@ model SupplementItemAllergen {
   @@id([supplementItemId, allergenId])
   @@index([allergenId])
 }
+
+enum SuggestionSection {
+  FOOD
+  DESSERT
+  OTHER
+}
+
+model SuggestionSheet {
+  id       String   @id @default(uuid())
+  dateFrom DateTime
+  dateTo   DateTime
+  isActive Boolean  @default(false)
+
+  items SuggestionItem[]
+}
+
+model SuggestionItem {
+  id      String           @id @default(uuid())
+  sheetId String
+  sheet   SuggestionSheet  @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  section SuggestionSection
+  title   Json
+  price   Decimal          @db.Decimal(10, 2)
+  order   Int              @default(0)
+
+  @@index([sheetId])
+  @@index([sheetId, section, order])
+}

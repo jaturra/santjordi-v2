@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: santjordi
-      POSTGRES_USER: santjordi
-      POSTGRES_PASSWORD: santjordi_pass_cambia
+      POSTGRES_DB: ${POSTGRES_DB:-santjordi}
+      POSTGRES_USER: ${POSTGRES_USER:-santjordi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -14,11 +14,11 @@ services:
     build: ./backend
     environment:
       PORT: 3000
-      DATABASE_URL: postgresql://santjordi:santjordi_pass_cambia@db:5432/santjordi?schema=public
-      ADMIN_USER: admin
-      ADMIN_PASS: admin123
-      JWT_SECRET: super_secret_cambia_esto
-      # CORS_ORIGIN: https://tu-dominio.com  # lo metemos luego si quieres
+      DATABASE_URL: postgresql://${POSTGRES_USER:-santjordi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-santjordi}?schema=public
+      ADMIN_USER: ${ADMIN_USER}
+      ADMIN_PASS: ${ADMIN_PASS}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
     depends_on:
       - db
     ports:
@@ -27,9 +27,6 @@ services:
   frontend:
     build: ./frontend
     environment:
-      # Si tu frontend usa build-time env, lo ideal es hacerlo por Nginx proxy /api.
-      # Mantén VITE_API_URL="/api" y proxy en Coolify (o Nginx).
-      # (Si lo necesitas por dominio completo, lo hacemos luego).
       - NODE_ENV=production
     depends_on:
       - backend

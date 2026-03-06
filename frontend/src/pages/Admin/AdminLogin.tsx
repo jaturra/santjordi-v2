@@ -14,7 +14,7 @@ export default function AdminLogin() {
     try {
       const { token } = await api.loginAdmin({ username, password });
       api.setToken(token);
-      nav("/admin");
+      nav("/admin/carta");
     } catch (err: any) {
       alert(err?.message ?? "Login error");
     } finally {

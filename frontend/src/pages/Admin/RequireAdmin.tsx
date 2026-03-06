@@ -6,7 +6,8 @@ type Props = {
 };
 
 export default function RequireAdmin({ children }: Props) {
-  const isAdmin = localStorage.getItem("admin") === "true"; 
+  // Ahora buscamos si existe el "token" real que guardó el login
+  const hasToken = localStorage.getItem("token") !== null; 
 
-  return isAdmin ? <>{children}</> : <Navigate to="/admin/login" replace />;
+  return hasToken ? <>{children}</> : <Navigate to="/admin/login" replace />;
 }

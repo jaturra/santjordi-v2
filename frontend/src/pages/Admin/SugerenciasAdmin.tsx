@@ -9,9 +9,11 @@ type Section = api.SuggestionSection;
 
 const DISPLAY_KEY = "sj_admin_displayMode";
 
-function fmtEUR(n: number) {
-  const v = Number.isFinite(n) ? n : 0;
-  return `${v.toFixed(2).replace(".", ",")}€`;
+// 🚀 FIX DEL PRECIO: Ahora convierte todo a número asegurándose de que nunca devuelva 0,00€ por error
+function fmtEUR(n: any) {
+  const v = Number(n);
+  const valid = Number.isFinite(v) ? v : 0;
+  return `${valid.toFixed(2).replace(".", ",")}€`;
 }
 
 function pickText(t: LangText, lang: "ca" | "es") {
@@ -29,7 +31,7 @@ function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-type Item = { id: string; section: Section; title: LangText; price: number; order: number };
+type Item = { id: string; section: Section; title: LangText; price: any; order: number };
 type Drag = null | { itemId: string; from: Section };
 
 export default function SugerenciasAdmin() {
@@ -91,7 +93,8 @@ export default function SugerenciasAdmin() {
     setDlg({ section: item.section, editing: item });
     setTitleCa(item.title.ca || "");
     setTitleEs(item.title.es || "");
-    setPrice(item.price.toString().replace(".", ",")); 
+    // Cargamos el precio limpio para editar
+    setPrice(Number(item.price || 0).toString().replace(".", ",")); 
   }
 
   async function createSheet() {
@@ -116,7 +119,6 @@ export default function SugerenciasAdmin() {
   async function saveItem() {
     if (!sheet || !dlg) return;
     try {
-      // PRECIO A PRUEBA DE BALAS
       let numStr = price.replace(",", ".");
       if (numStr === "") numStr = "0";
       const parsedPrice = Number(numStr) || 0;
@@ -160,25 +162,17 @@ export default function SugerenciasAdmin() {
     return other as any;
   }
 
-  // FUNCIÓN DE ARRASTRAR Y SOLTAR 100% FUNCIONAL
-  async function persistMoveOrReorder(section: Section, ids: string[]) {
+  // 🚀 FIX DEL DRAG AND DROP: Usando la API oficial del proyecto
+  async function persistMoveOrReorder(from: Section, to: Section, nextToIds: string[], nextFromIds?: string[]) {
     if (!sheet) return;
     try {
-      const token = localStorage.getItem("sj_admin_token");
-      
-      // Hacemos el fetch manual saltándonos sjApi para asegurar el formato { ids: [...] }
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/reorder/suggestions/${sheet.id}/${section}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ ids: ids })
-      });
-
-      if (!res.ok) throw new Error("Error en reordenar");
+      if (nextFromIds) {
+        await api.reorderSuggestionItems(sheet.id, from, nextFromIds);
+      }
+      await api.reorderSuggestionItems(sheet.id, to, nextToIds);
     } catch (e: any) {
-      alert("Error guardant ordre. Assegurat que estàs connectat a internet.");
+      alert("Error guardant ordre. Revisa connexió.");
+      await load();
     }
   }
 
@@ -199,7 +193,6 @@ export default function SugerenciasAdmin() {
     const toIds = [...toIdsBase];
     if (!toIds.includes(itemId)) toIds.splice(insertIndex, 0, itemId);
 
-    // Estado visual instantáneo
     setSheet((prev) => {
       if (!prev) return prev;
       const all = [...prev.sections.food, ...prev.sections.desserts, ...prev.sections.other];
@@ -220,14 +213,8 @@ export default function SugerenciasAdmin() {
       };
     });
 
-    // Guardado en base de datos
     void (async () => {
-      if (from === to) {
-        await persistMoveOrReorder(to, toIds);
-      } else {
-        await persistMoveOrReorder(from, fromIds); // Quitamos del viejo
-        await persistMoveOrReorder(to, toIds);     // Añadimos al nuevo
-      }
+      await persistMoveOrReorder(from, to, toIds, from === to ? undefined : fromIds);
       setDrag(null);
       setDrop(null);
       await load(); 
@@ -282,9 +269,9 @@ export default function SugerenciasAdmin() {
               </div>
             ) : (
               <div className="sj-admin__col">
-                <SectionBlock title={{ ca: "Tapes i Plats", es: "Tapas y Platos" }} displayMode={displayMode} section="FOOD" items={food} drag={drag} drop={drop} onAdd={() => openNewItem("FOOD")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "FOOD" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "FOOD", beforeId })} onDrop={(beforeId) => onDropInto("FOOD", beforeId)} onDropEnd={() => onDropInto("FOOD", undefined)} />
-                <SectionBlock title={{ ca: "Postres", es: "Postres" }} displayMode={displayMode} section="DESSERT" items={desserts} drag={drag} drop={drop} onAdd={() => openNewItem("DESSERT")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "DESSERT" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "DESSERT", beforeId })} onDrop={(beforeId) => onDropInto("DESSERT", beforeId)} onDropEnd={() => onDropInto("DESSERT", undefined)} />
-                <SectionBlock title={{ ca: "Altres", es: "Otros" }} displayMode={displayMode} section="OTHER" items={other} drag={drag} drop={drop} onAdd={() => openNewItem("OTHER")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "OTHER" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "OTHER", beforeId })} onDrop={(beforeId) => onDropInto("OTHER", beforeId)} onDropEnd={() => onDropInto("OTHER", undefined)} />
+                <SectionBlock title={{ ca: "Tapes i Plats", es: "Tapas y Platos" }} section="FOOD" items={food} drag={drag} drop={drop} onAdd={() => openNewItem("FOOD")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "FOOD" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "FOOD", beforeId })} onDrop={(beforeId) => onDropInto("FOOD", beforeId)} onDropEnd={() => onDropInto("FOOD", undefined)} />
+                <SectionBlock title={{ ca: "Postres", es: "Postres" }} section="DESSERT" items={desserts} drag={drag} drop={drop} onAdd={() => openNewItem("DESSERT")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "DESSERT" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "DESSERT", beforeId })} onDrop={(beforeId) => onDropInto("DESSERT", beforeId)} onDropEnd={() => onDropInto("DESSERT", undefined)} />
+                <SectionBlock title={{ ca: "Altres", es: "Otros" }} section="OTHER" items={other} drag={drag} drop={drop} onAdd={() => openNewItem("OTHER")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "OTHER" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "OTHER", beforeId })} onDrop={(beforeId) => onDropInto("OTHER", beforeId)} onDropEnd={() => onDropInto("OTHER", undefined)} />
               </div>
             )}
           </div>
@@ -317,7 +304,7 @@ export default function SugerenciasAdmin() {
                   </label>
                   <label className="field field--small">
                     <span>Preu (€)</span>
-                    <input type="text" inputMode="decimal" placeholder="Ej: 3,50 o 3.5" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    <input type="text" inputMode="decimal" placeholder="Ej: 3,50" value={price} onChange={(e) => setPrice(e.target.value)} />
                   </label>
                 </div>
 
@@ -344,7 +331,6 @@ export default function SugerenciasAdmin() {
 
 function SectionBlock(props: {
   title: LangText;
-  displayMode: DisplayMode;
   section: Section;
   items: Item[];
 
@@ -362,7 +348,6 @@ function SectionBlock(props: {
   onDrop: (beforeId?: string) => void;
   onDropEnd: () => void;
 }) {
-  const heading = headingFor(props.title, props.displayMode);
   const isSectionDrop = props.drop?.section === props.section && !props.drop.beforeId;
 
   return (
@@ -383,7 +368,7 @@ function SectionBlock(props: {
     >
       <div className="menuSection__head">
         <div className="menuSection__headLeft">
-          <div className="menuSection__title">{heading}</div>
+          <div className="menuSection__title">{props.title.ca}</div>
         </div>
         <div className="menuSection__headBtns">
           <button className="iconBtn" type="button" onClick={props.onAdd} title="Afegir">+</button>
@@ -422,10 +407,12 @@ function SectionBlock(props: {
                 <button className="menuRow" type="button" onClick={() => props.onEdit(it)}>
                   <div className="menuRow__left">
                     <div className="menuRow__titleLine">
+                      {/* ESTÉTICA CARTA REAL: Catalán principal */}
                       <span className="menuRow__title">- {it.title.ca || it.title.es || "—"}</span>
                       <span className="menuRow__leader" />
                       <span className="menuRow__price">{fmtEUR(it.price)}</span>
                     </div>
+                    {/* ESTÉTICA CARTA REAL: Castellano secundario y en cursiva (solo si es diferente) */}
                     {it.title.es && it.title.es !== it.title.ca && (
                       <div className="menuRow__subItalic" style={{ fontSize: "0.85em", color: "rgba(27, 43, 74, 0.65)", marginTop: "2px", fontWeight: "500", textAlign: "left" }}>
                         {it.title.es}

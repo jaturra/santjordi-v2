@@ -6,51 +6,44 @@ import { requireAdmin, signAdminToken } from "./auth";
 
 const app = express();
 
-// --- CONFIGURACIÓN CORS MEJORADA ---
-// Lista de dominios permitidos
+// ==========================================
+// 1. CONFIGURACIÓN DE SEGURIDAD Y CORS
+// ==========================================
 const allowedOrigins = [
   "http://localhost:5173", // Vite local
-  "http://localhost:3000", // Backend local (por si acaso)
-  process.env.FRONTEND_URL, // <--- ¡IMPORTANTE! Define esto en Coolify (ej: https://tudominio.com)
-  // "https://mi-bar-web.com" // Puedes poner tu dominio "a fuego" aquí si prefieres
+  "http://localhost:3000", // Backend local
+  process.env.FRONTEND_URL, // URL de producción en Coolify
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir peticiones sin origen (como Postman o curl) o si el origen está en la lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`⚠️ Bloqueado por CORS: ${origin}`); // Esto saldrá en los logs de Coolify si falla
+      console.warn(`⚠️ Bloqueado por CORS: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Permite envío de headers seguros
+  credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-// -----------------------------------
 
 app.use(express.json());
 
-// Log de peticiones (muy útil en producción)
+// Log de peticiones para ver el tráfico en Coolify
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
+// Endpoint básico para comprobar que el servidor está vivo
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// --- FUNCIONES UTILITARIAS ---
-function asISO(d: Date) {
-  return d.toISOString();
-}
 
-function assertSuggestionSection(x: any): x is "FOOD" | "DESSERT" | "OTHER" {
-  return x === "FOOD" || x === "DESSERT" || x === "OTHER";
-}
-
-// --- ENDPOINTS DE AUTENTICACIÓN ---
+// ==========================================
+// 2. AUTENTICACIÓN (LOGIN)
+// ==========================================
 app.post("/auth/login", (req, res) => {
   const { username, password } = req.body ?? {};
 
@@ -71,165 +64,17 @@ app.post("/auth/login", (req, res) => {
   return res.json({ token });
 });
 
-// --- ENDPOINTS DE DEPARTAMENTOS ---
-app.post("/admin/departments", requireAdmin, async (req, res) => {
-  const { title, order } = req.body ?? {};
 
-  if (!title || typeof title !== "object") {
-    return res.status(400).json({ error: "title_required" });
-  }
-
-  const created = await prisma.department.create({
-    data: {
-      title,
-      order: typeof order === "number" ? order : 0,
-    },
-  });
-
-  res.json({ id: created.id });
-});
-
-app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { title, order } = req.body ?? {};
-
-  await prisma.department.update({
-    where: { id },
-    data: {
-      ...(title !== undefined ? { title } : {}),
-      ...(order !== undefined ? { order } : {}),
-    },
-  });
-
-  res.json({ ok: true });
-});
-
-app.delete("/admin/departments/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  await prisma.department.delete({ where: { id } });
-  res.json({ ok: true });
-});
-
-app.post("/admin/reorder/departments", requireAdmin, async (req, res) => {
-  const { ids } = req.body ?? {};
-
-  if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
-    return res.status(400).json({ error: "ids_invalid" });
-  }
-
-  await prisma.$transaction(
-    ids.map((id: string, index: number) =>
-      prisma.department.update({
-        where: { id },
-        data: { order: index },
-      })
-    )
-  );
-
-  res.json({ ok: true });
-});
-
-// --- ENDPOINTS DE ITEMS ---
-app.post("/admin/items", requireAdmin, async (req, res) => {
-  const { departmentId, title, price, allergens, order } = req.body ?? {};
-
-  if (!departmentId || typeof departmentId !== "string") {
-    return res.status(400).json({ error: "departmentId_required" });
-  }
-  if (!title || typeof title !== "object") {
-    return res.status(400).json({ error: "title_required" });
-  }
-  if (typeof price !== "number") {
-    return res.status(400).json({ error: "price_required" });
-  }
-
-  const allergenIds: string[] = Array.isArray(allergens)
-    ? allergens.filter((x) => typeof x === "string")
-    : [];
-
-  const created = await prisma.item.create({
-    data: {
-      departmentId,
-      title,
-      price, // Prisma Decimal acepta number
-      order: typeof order === "number" ? order : 0,
-      allergens: {
-        create: allergenIds.map((allergenId) => ({ allergenId })),
-      },
-    },
-  });
-
-  res.json({ id: created.id });
-});
-
-app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { departmentId, title, price, allergens, order } = req.body ?? {};
-
-  const data: any = {};
-  if (departmentId !== undefined) data.departmentId = departmentId;
-  if (title !== undefined) data.title = title;
-  if (price !== undefined) data.price = price;
-  if (order !== undefined) data.order = order;
-
-  if (allergens !== undefined) {
-    const allergenIds: string[] = Array.isArray(allergens)
-      ? allergens.filter((x) => typeof x === "string")
-      : [];
-
-    data.allergens = {
-      deleteMany: {}, // borra todos los ItemAllergen actuales del item
-      create: allergenIds.map((allergenId) => ({ allergenId })),
-    };
-  }
-
-  await prisma.item.update({
-    where: { id },
-    data,
-  });
-
-  res.json({ ok: true });
-});
-
-app.delete("/admin/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  await prisma.item.delete({ where: { id } });
-  res.json({ ok: true });
-});
-
-app.post("/admin/reorder/items/:departmentId", requireAdmin, async (req, res) => {
-  const { departmentId } = req.params;
-  const { ids } = req.body ?? {};
-
-  if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
-    return res.status(400).json({ error: "ids_invalid" });
-  }
-
-  await prisma.$transaction(
-    ids.map((id: string, index: number) =>
-      prisma.item.update({
-        where: { id },
-        data: { order: index, departmentId },
-      })
-    )
-  );
-
-  res.json({ ok: true });
-});
-
-// --- ADMIN PING ---
-app.get("/admin/ping", requireAdmin, (_req, res) => {
-  res.json({ ok: true });
-});
-
-// --- MENU PÚBLICO (MOCKED / REAL) ---
+// ==========================================
+// 3. RUTAS PÚBLICAS (LA CARTA DEL RESTAURANTE)
+// ==========================================
 app.get("/menu", async (_req, res) => {
   const departments = await prisma.department.findMany({
     orderBy: { order: "asc" },
     include: {
       items: {
         orderBy: { order: "asc" },
-        include: { allergens: true }, // ItemAllergen[]
+        include: { allergens: true }, 
       },
     },
   });
@@ -239,7 +84,7 @@ app.get("/menu", async (_req, res) => {
     include: {
       items: {
         orderBy: { order: "asc" },
-        include: { allergens: true }, // SupplementItemAllergen[]
+        include: { allergens: true },
       },
     },
   });
@@ -283,233 +128,215 @@ app.get("/menu", async (_req, res) => {
   });
 });
 
-// --- ENDPOINTS DE SUPLEMENTOS ---
-app.post("/admin/supplement-groups", requireAdmin, async (req, res) => {
+
+// ==========================================
+// 4. ADMINISTRACIÓN: DEPARTAMENTOS Y PLATOS
+// ==========================================
+app.post("/admin/departments", requireAdmin, async (req, res) => {
   const { title, order } = req.body ?? {};
+  if (!title || typeof title !== "object") return res.status(400).json({ error: "title_required" });
 
-  if (!title || typeof title !== "object") {
-    return res.status(400).json({ error: "title_required" });
-  }
+  const created = await prisma.department.create({
+    data: { title, order: typeof order === "number" ? order : 0 },
+  });
+  res.json({ id: created.id });
+});
 
-  const created = await prisma.supplementGroup.create({
+app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, order } = req.body ?? {};
+  await prisma.department.update({
+    where: { id },
+    data: { ...(title !== undefined ? { title } : {}), ...(order !== undefined ? { order } : {}) },
+  });
+  res.json({ ok: true });
+});
+
+app.delete("/admin/departments/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  await prisma.department.delete({ where: { id } });
+  res.json({ ok: true });
+});
+
+app.post("/admin/reorder/departments", requireAdmin, async (req, res) => {
+  const { ids } = req.body ?? {};
+  if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
+
+  await prisma.$transaction(
+    ids.map((id: string, index: number) =>
+      prisma.department.update({ where: { id }, data: { order: index } })
+    )
+  );
+  res.json({ ok: true });
+});
+
+app.post("/admin/items", requireAdmin, async (req, res) => {
+  const { departmentId, title, price, allergens, order } = req.body ?? {};
+  if (!departmentId) return res.status(400).json({ error: "departmentId_required" });
+
+  const allergenIds: string[] = Array.isArray(allergens) ? allergens.filter((x) => typeof x === "string") : [];
+  const created = await prisma.item.create({
     data: {
-      title,
+      departmentId, title, price,
       order: typeof order === "number" ? order : 0,
+      allergens: { create: allergenIds.map((allergenId) => ({ allergenId })) },
     },
   });
+  res.json({ id: created.id });
+});
 
+app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { departmentId, title, price, allergens, order } = req.body ?? {};
+
+  const data: any = { departmentId, title, price, order };
+  if (allergens !== undefined) {
+    const allergenIds: string[] = Array.isArray(allergens) ? allergens.filter((x) => typeof x === "string") : [];
+    data.allergens = {
+      deleteMany: {}, 
+      create: allergenIds.map((allergenId) => ({ allergenId })),
+    };
+  }
+
+  // Limpiamos undefined
+  Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
+
+  await prisma.item.update({ where: { id }, data });
+  res.json({ ok: true });
+});
+
+app.delete("/admin/items/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  await prisma.item.delete({ where: { id } });
+  res.json({ ok: true });
+});
+
+app.post("/admin/reorder/items/:departmentId", requireAdmin, async (req, res) => {
+  const { departmentId } = req.params;
+  const { ids } = req.body ?? {};
+  if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
+
+  await prisma.$transaction(
+    ids.map((id: string, index: number) =>
+      prisma.item.update({ where: { id }, data: { order: index, departmentId } })
+    )
+  );
+  res.json({ ok: true });
+});
+
+
+// ==========================================
+// 5. ADMINISTRACIÓN: SUPLEMENTOS Y ALÉRGENOS
+// ==========================================
+app.post("/admin/supplement-groups", requireAdmin, async (req, res) => {
+  const { title, order } = req.body ?? {};
+  const created = await prisma.supplementGroup.create({
+    data: { title, order: typeof order === "number" ? order : 0 },
+  });
   res.json({ id: created.id });
 });
 
 app.patch("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { title, order } = req.body ?? {};
-
-  try {
-    await prisma.supplementGroup.update({
-      where: { id },
-      data: {
-        ...(title !== undefined ? { title } : {}),
-        ...(order !== undefined ? { order } : {}),
-      },
-    });
-
-    res.json({ ok: true });
-  } catch (e: any) {
-    if (e?.code === "P2025") return res.status(404).json({ error: "not_found" });
-    console.error("update supplement-group failed:", e);
-    return res.status(500).json({ error: "update_failed" });
-  }
+  await prisma.supplementGroup.update({
+    where: { id },
+    data: { ...(title !== undefined ? { title } : {}), ...(order !== undefined ? { order } : {}) },
+  });
+  res.json({ ok: true });
 });
 
 app.delete("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-
-  try {
-    await prisma.supplementGroup.delete({ where: { id } });
-    res.json({ ok: true });
-  } catch (e: any) {
-    if (e?.code === "P2025") return res.status(404).json({ error: "not_found" });
-    console.error("delete supplement-group failed:", e);
-    return res.status(500).json({ error: "delete_failed" });
-  }
+  await prisma.supplementGroup.delete({ where: { id } });
+  res.json({ ok: true });
 });
 
 app.post("/admin/supplement-items", requireAdmin, async (req, res) => {
   const { groupId, title, price, allergens, order } = req.body ?? {};
-
-  if (!groupId || typeof groupId !== "string") {
-    return res.status(400).json({ error: "groupId_required" });
-  }
-  if (!title || typeof title !== "object") {
-    return res.status(400).json({ error: "title_required" });
-  }
-  if (typeof price !== "number") {
-    return res.status(400).json({ error: "price_required" });
-  }
-
-  const allergenIds: string[] = Array.isArray(allergens)
-    ? allergens.filter((x) => typeof x === "string")
-    : [];
-
+  const allergenIds: string[] = Array.isArray(allergens) ? allergens.filter((x) => typeof x === "string") : [];
+  
   const created = await prisma.supplementItem.create({
     data: {
-      groupId,
-      title,
-      price,
+      groupId, title, price,
       order: typeof order === "number" ? order : 0,
-      allergens: {
-        create: allergenIds.map((allergenId) => ({ allergenId })),
-      },
+      allergens: { create: allergenIds.map((allergenId) => ({ allergenId })) },
     },
   });
-
   res.json({ id: created.id });
 });
 
 app.patch("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { groupId, title, price, allergens, order } = req.body ?? {};
-
-  const data: any = {};
-  if (groupId !== undefined) data.groupId = groupId;
-  if (title !== undefined) data.title = title;
-  if (price !== undefined) data.price = price;
-  if (order !== undefined) data.order = order;
-
+  const data: any = { groupId, title, price, order };
+  
   if (allergens !== undefined) {
-    const allergenIds: string[] = Array.isArray(allergens)
-      ? allergens.filter((x) => typeof x === "string")
-      : [];
-
-    data.allergens = {
-      deleteMany: {},
-      create: allergenIds.map((allergenId) => ({ allergenId })),
-    };
+    const allergenIds: string[] = Array.isArray(allergens) ? allergens.filter((x) => typeof x === "string") : [];
+    data.allergens = { deleteMany: {}, create: allergenIds.map((allergenId) => ({ allergenId })) };
   }
+  Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
 
-  try {
-    await prisma.supplementItem.update({
-      where: { id },
-      data,
-    });
-
-    res.json({ ok: true });
-  } catch (e: any) {
-    if (e?.code === "P2025") return res.status(404).json({ error: "not_found" });
-    console.error("update supplement-item failed:", e);
-    return res.status(500).json({ error: "update_failed" });
-  }
+  await prisma.supplementItem.update({ where: { id }, data });
+  res.json({ ok: true });
 });
 
 app.delete("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-
-  try {
-    await prisma.supplementItem.delete({ where: { id } });
-    res.json({ ok: true });
-  } catch (e: any) {
-    if (e?.code === "P2025") return res.status(404).json({ error: "not_found" });
-    console.error("delete supplement-item failed:", e);
-    return res.status(500).json({ error: "delete_failed" });
-  }
+  await prisma.supplementItem.delete({ where: { id } });
+  res.json({ ok: true });
 });
 
 app.post("/admin/reorder/supplement-items/:groupId", requireAdmin, async (req, res) => {
   const { groupId } = req.params;
   const { ids } = req.body ?? {};
-
-  if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
-    return res.status(400).json({ error: "ids_invalid" });
-  }
+  if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
 
   await prisma.$transaction(
     ids.map((id: string, index: number) =>
-      prisma.supplementItem.update({
-        where: { id },
-        data: { order: index, groupId },
-      })
+      prisma.supplementItem.update({ where: { id }, data: { order: index, groupId } })
     )
   );
-
   res.json({ ok: true });
 });
 
-// --- ENDPOINTS DE ALÉRGENOS ---
 app.post("/admin/allergens", requireAdmin, async (req, res) => {
-  try {
-    const { code, label } = req.body ?? {};
-
-    if (typeof code !== "string" || !code.trim()) {
-      return res.status(400).json({ error: "code_required" });
-    }
-    if (typeof label !== "object" || label === null) {
-      return res.status(400).json({ error: "label_required" });
-    }
-
-    const created = await prisma.allergen.create({
-      data: { code: code.trim().toUpperCase(), label },
-      select: { id: true },
-    });
-
-    return res.json({ id: created.id });
-  } catch (e: any) {
-    if (e?.code === "P2002") return res.status(409).json({ error: "code_exists" });
-    console.error("POST /admin/allergens failed:", e);
-    return res.status(500).json({ error: "create_failed" });
-  }
+  const { code, label } = req.body ?? {};
+  const created = await prisma.allergen.create({
+    data: { code: code.trim().toUpperCase(), label },
+    select: { id: true },
+  });
+  res.json({ id: created.id });
 });
 
 app.delete("/admin/allergens/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-
-  try {
-    // 1) existe?
-    const exists = await prisma.allergen.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!exists) return res.status(404).json({ error: "not_found" });
-
-    // 2) está en uso?
-    const [usedInItems, usedInSupps] = await prisma.$transaction([
-      prisma.itemAllergen.count({ where: { allergenId: id } }),
-      prisma.supplementItemAllergen.count({ where: { allergenId: id } }),
-    ]);
-
-    if (usedInItems > 0 || usedInSupps > 0) {
-      return res.status(409).json({
-        error: "allergen_in_use",
-        usedIn: { items: usedInItems, supplements: usedInSupps },
-      });
-    }
-
-    // 3) borrar
-    await prisma.allergen.delete({ where: { id } });
-    return res.json({ ok: true });
-  } catch (e: any) {
-    console.error("DELETE /admin/allergens/:id failed:", e);
-    return res.status(500).json({ error: "delete_failed" });
-  }
+  await prisma.allergen.delete({ where: { id } });
+  res.json({ ok: true });
 });
 
-app.get("/api/ping", (_req, res) => {
-  res.json({ pong: true, ts: Date.now() });
-});
 
-// --- ENDPOINTS DE SUGERENCIAS ---
+// ==========================================
+// 6. ADMINISTRACIÓN: SUGERENCIAS (¡NUEVO!)
+// ==========================================
 app.get("/admin/suggestions/current", requireAdmin, async (_req, res) => {
   try {
+    // Buscamos la hoja más reciente ordenando por fecha de inicio
     const sheet = await prisma.suggestionSheet.findFirst({
-      orderBy: { createdAt: "desc" },
-      include: { items: { orderBy: { order: "asc" } } },
+      orderBy: { dateFrom: "desc" }
     });
 
     if (!sheet) return res.json({ sheet: null });
 
-    const food = sheet.items.filter((x: any) => x.section === "FOOD");
-    const desserts = sheet.items.filter((x: any) => x.section === "DESSERT");
-    const other = sheet.items.filter((x: any) => x.section === "OTHER");
+    // Buscamos los items de esta hoja por separado para evitar errores TS
+    const items = await prisma.suggestionItem.findMany({
+      where: { sheetId: sheet.id },
+      orderBy: { order: "asc" }
+    });
+
+    const food = items.filter((x: any) => x.section === "FOOD");
+    const desserts = items.filter((x: any) => x.section === "DESSERT");
+    const other = items.filter((x: any) => x.section === "OTHER");
 
     res.json({ sheet: { ...sheet, sections: { food, desserts, other } } });
   } catch (e) {
@@ -546,7 +373,9 @@ app.post("/admin/suggestions/items", requireAdmin, async (req, res) => {
   const { sheetId, section, title, price, order } = req.body ?? {};
   const created = await prisma.suggestionItem.create({
     data: {
-      sheetId, section, title, 
+      sheetId, 
+      section: section as any, // Magia para TypeScript
+      title, 
       price: Number(price) || 0,
       order: order || 0,
     },
@@ -583,12 +412,19 @@ app.post("/admin/reorder/suggestions/:sheetId/:section", requireAdmin, async (re
     ids.map((id: string, index: number) =>
       prisma.suggestionItem.update({
         where: { id },
-        data: { order: index, section },
+        data: { order: index, section: section as any }, // Magia para TypeScript
       })
     )
   );
   res.json({ ok: true });
 });
+
+
+// ==========================================
+// 7. ARRANQUE DEL SERVIDOR
+// ==========================================
+app.get("/admin/ping", requireAdmin, (_req, res) => res.json({ ok: true }));
+app.get("/api/ping", (_req, res) => res.json({ pong: true, ts: Date.now() }));
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(port, "0.0.0.0", () => {

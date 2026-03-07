@@ -12,7 +12,9 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173", // Vite local
   "http://localhost:3000", // Backend local
-  process.env.FRONTEND_URL, // URL de producción en Coolify
+  "https://barsantjordi.es",      // <--- TU WEB 
+  "https://www.barsantjordi.es",  // <--- TU WEB CON WWW
+  process.env.FRONTEND_URL, 
 ];
 
 app.use(cors({

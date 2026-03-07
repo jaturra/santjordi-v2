@@ -1,29 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import "../Admin/Admin.css"; // Usa la misma estética de la carta
+import "../Admin/Admin.css"; 
 import * as api from "../../api/sjApi";
 import { Link } from "react-router-dom";
 
-type DisplayMode = "bilingual" | "ca" | "es";
 type Lang = "ca" | "es";
 type LangText = api.LangText;
-
-const DISPLAY_KEY = "sj_admin_displayMode";
 
 function fmtEUR(n: number) {
   const v = Number.isFinite(n) ? n : 0;
   return `${v.toFixed(2).replace(".", ",")}€`;
-}
-
-function pickText(t: LangText, lang: Lang) {
-  return (t?.[lang] ?? "").trim();
-}
-
-// Función simplificada para los títulos de las secciones de los clientes
-function headingFor(t: LangText, mode: DisplayMode) {
-  const ca = pickText(t, "ca");
-  const es = pickText(t, "es");
-  if (mode === "bilingual") return ca && es && ca !== es ? `${ca} / ${es}` : ca || es || "—";
-  return pickText(t, mode) || (mode === "ca" ? es : ca) || "—";
 }
 
 const months = {
@@ -37,58 +22,43 @@ function formatRange(dateFromISO: string, dateToISO: string, lang: Lang) {
   const d1 = a.getDate();
   const d2 = b.getDate();
   const m = months[lang][b.getMonth()];
-  
-  if (lang === "ca") return `del ${d1} al ${d2} de ${m}`;
   return `del ${d1} al ${d2} de ${m}`;
 }
 
-function RangeTitle({ from, to, mode }: { from: string; to: string; mode: DisplayMode }) {
-  const ca = `Especialitats ${formatRange(from, to, "ca")}`;
-  const es = `Especialidades ${formatRange(from, to, "es")}`;
-
-  if (mode === "bilingual") return <div className="sj-admin__brandSub">{ca} / {es}</div>;
-  return <div className="sj-admin__brandSub">{mode === "ca" ? ca : es}</div>;
-}
-
-// Renderiza cada fila de plato para el cliente
-function Row({ title, price, mode }: { title: LangText; price: number; mode: DisplayMode }) {
-  const main = headingFor(title, mode);
+// Renderiza cada fila de plato para el cliente (Diseño Carta de Restaurante)
+function Row({ title, price }: { title: LangText; price: number }) {
+  const ca = title?.ca?.trim();
+  const es = title?.es?.trim();
   
   return (
     <div className="menuRow" style={{ cursor: "default" }}>
       <div className="menuRow__left">
         <div className="menuRow__titleLine">
-          <span className="menuRow__title">{main}</span>
+          {/* Catalán Principal (Grande) */}
+          <span className="menuRow__title">- {ca || es || "—"}</span>
           <span className="menuRow__leader" />
           <span className="menuRow__price">{fmtEUR(price)}</span>
         </div>
+        {/* Castellano Secundario (Pequeño y cursiva) */}
+        {es && es !== ca && (
+          <div className="menuRow__subItalic" style={{ fontSize: "0.85em", color: "rgba(27, 43, 74, 0.65)", marginTop: "2px", fontWeight: "500", textAlign: "left" }}>
+            {es}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 export default function Sugerencias() {
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("bilingual");
   const [loading, setLoading] = useState(true);
-  
-  // Usamos el tipo correcto para la respuesta actual de la API
   const [sheet, setSheet] = useState<api.AdminSuggestionsCurrent["sheet"]>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(DISPLAY_KEY);
-    if (saved === "bilingual" || saved === "ca" || saved === "es") setDisplayMode(saved);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(DISPLAY_KEY, displayMode);
-  }, [displayMode]);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        // CORRECCIÓN: Usamos getAdminSuggestionsCurrent() temporalmente si tu API pública no está lista
-        // Si tu backend tiene la ruta pública /api/suggestions, usa api.getSuggestionsCurrent()
+        // Obtenemos los datos tal cual están en el backend
         const data = await api.getAdminSuggestionsCurrent(); 
         setSheet(data.sheet);
       } catch (e: any) {
@@ -115,18 +85,13 @@ export default function Sugerencias() {
           <Link to="/" className="sj-admin__brandLink" aria-label="Tornar a l'inici">
             <div className="sj-admin__brand">
               <div className="sj-admin__brandName">BAR SANT JORDI</div>
-              {sheet ? <RangeTitle from={String(sheet.dateFrom)} to={String(sheet.dateTo)} mode={displayMode} /> : <div className="sj-admin__brandSub">Sugerències</div>}
+              {sheet ? (
+                <div className="sj-admin__brandSub">Especialitats {formatRange(String(sheet.dateFrom), String(sheet.dateTo), "ca")}</div>
+              ) : (
+                <div className="sj-admin__brandSub">Suggerències</div>
+              )}
             </div>
           </Link>
-
-          {/* Botones de idioma (Opcional en sugerencias si siempre pones el texto igual, pero lo dejamos por coherencia) */}
-          {/* <div className="sj-admin__actions">
-            <div className="seg">
-              <button className={`seg__btn ${displayMode === "bilingual" ? "is-on" : ""}`} onClick={() => setDisplayMode("bilingual")} type="button">CA/ES</button>
-              <button className={`seg__btn ${displayMode === "ca" ? "is-on" : ""}`} onClick={() => setDisplayMode("ca")} type="button">CA</button>
-              <button className={`seg__btn ${displayMode === "es" ? "is-on" : ""}`} onClick={() => setDisplayMode("es")} type="button">ES</button>
-            </div>
-          </div> */}
         </header>
 
         <div className="sj-admin__rule" />
@@ -144,12 +109,12 @@ export default function Sugerencias() {
               {sheet.sections.food.length > 0 && (
                 <section className="menuSection">
                   <div className="menuSection__head">
-                    <div className="menuSection__title">{headingFor({ ca: "Tapes i Plats", es: "Tapas y Platos" }, displayMode)}</div>
+                    <div className="menuSection__title">Tapes i Plats</div>
                   </div>
                   <div className="menuSection__rule" />
                   <div className="menuList">
                     {sheet.sections.food.sort((a,b) => a.order - b.order).map((i) => (
-                      <Row key={i.id} title={i.title} price={i.price} mode={displayMode} />
+                      <Row key={i.id} title={i.title} price={i.price} />
                     ))}
                   </div>
                 </section>
@@ -158,12 +123,12 @@ export default function Sugerencias() {
               {sheet.sections.desserts.length > 0 && (
                 <section className="menuSection">
                   <div className="menuSection__head">
-                    <div className="menuSection__title">{headingFor({ ca: "Postres", es: "Postres" }, displayMode)}</div>
+                    <div className="menuSection__title">Postres</div>
                   </div>
                   <div className="menuSection__rule" />
                   <div className="menuList">
                     {sheet.sections.desserts.sort((a,b) => a.order - b.order).map((i) => (
-                      <Row key={i.id} title={i.title} price={i.price} mode={displayMode} />
+                      <Row key={i.id} title={i.title} price={i.price} />
                     ))}
                   </div>
                 </section>
@@ -172,12 +137,12 @@ export default function Sugerencias() {
               {sheet.sections.other.length > 0 && (
                 <section className="menuSection">
                   <div className="menuSection__head">
-                    <div className="menuSection__title">{headingFor({ ca: "Altres", es: "Otros" }, displayMode)}</div>
+                    <div className="menuSection__title">Altres</div>
                   </div>
                   <div className="menuSection__rule" />
                   <div className="menuList">
                     {sheet.sections.other.sort((a,b) => a.order - b.order).map((i) => (
-                      <Row key={i.id} title={i.title} price={i.price} mode={displayMode} />
+                      <Row key={i.id} title={i.title} price={i.price} />
                     ))}
                   </div>
                 </section>

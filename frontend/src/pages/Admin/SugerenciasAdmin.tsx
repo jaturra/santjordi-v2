@@ -14,22 +14,10 @@ function fmtEUR(n: number) {
   return `${v.toFixed(2).replace(".", ",")}€`;
 }
 
-function pickText(t: LangText, lang: "ca" | "es") {
-  return (t?.[lang] ?? "").trim();
-}
-
-function headingFor(t: LangText, mode: DisplayMode) {
-  const ca = pickText(t, "ca");
-  const es = pickText(t, "es");
-  if (mode === "bilingual") return ca && es ? `${ca} / ${es}` : ca || es || "—";
-  return (t?.[mode] ?? "").trim() || (mode === "ca" ? es : ca) || "—";
-}
-
 function isoDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-// Volvemos a usar el tipo LangText para respetar CA y ES
 type Item = { id: string; section: Section; title: LangText; price: number; order: number };
 type Drag = null | { itemId: string; from: Section };
 
@@ -38,17 +26,14 @@ export default function SugerenciasAdmin() {
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<api.AdminSuggestionsCurrent["sheet"]>(null);
 
-  // editor sheet
   const [dateFrom, setDateFrom] = useState<string>(isoDate(new Date()));
   const [dateTo, setDateTo] = useState<string>(isoDate(new Date(Date.now() + 2 * 86400000)));
 
-  // modal item (Restauramos CA y ES, y Price pasa a string temporalmente para evitar bugs de tipeo)
   const [dlg, setDlg] = useState<null | { section: Section; editing?: Item }>(null);
   const [titleCa, setTitleCa] = useState("");
   const [titleEs, setTitleEs] = useState("");
   const [price, setPrice] = useState<string>(""); 
 
-  // DnD
   const [drag, setDrag] = useState<Drag>(null);
   const [drop, setDrop] = useState<null | { section: Section; beforeId?: string }>(null);
 
@@ -95,7 +80,7 @@ export default function SugerenciasAdmin() {
     setDlg({ section: item.section, editing: item });
     setTitleCa(item.title.ca || "");
     setTitleEs(item.title.es || "");
-    setPrice(item.price.toString());
+    setPrice(item.price.toString().replace(".", ",")); // Mostrar con coma
   }
 
   async function createSheet() {
@@ -120,11 +105,12 @@ export default function SugerenciasAdmin() {
   async function saveItem() {
     if (!sheet || !dlg) return;
     try {
-      // Arreglo del precio: cambiamos coma por punto y parseamos de forma segura
-      const parsedPrice = parseFloat(price.replace(",", ".")) || 0;
+      // Magia para el precio: limpia cualquier coma y lo transforma a decimal perfecto
+      const cleanPrice = price.replace(/[^0-9.,]/g, "").replace(",", ".");
+      const parsedPrice = parseFloat(cleanPrice) || 0;
       
       const payload = { 
-        title: { ca: titleCa, es: titleEs }, 
+        title: { ca: titleCa.trim(), es: titleEs.trim() }, 
         price: parsedPrice 
       };
 
@@ -183,19 +169,15 @@ export default function SugerenciasAdmin() {
 
     const fromList = listFor(from).map((x) => x.id);
     const toList = listFor(to).map((x) => x.id);
-
     const itemId = drag.itemId;
 
-    // Remove from source
     const fromIds = fromList.filter((id) => id !== itemId);
     const toIdsBase = from === to ? fromIds : toList;
 
-    // Insert into target
     const insertIndex = beforeId ? Math.max(0, toIdsBase.indexOf(beforeId)) : toIdsBase.length;
     const toIds = [...toIdsBase];
     if (!toIds.includes(itemId)) toIds.splice(insertIndex, 0, itemId);
 
-    // Optimistic UI state
     setSheet((prev) => {
       if (!prev) return prev;
       const all = [...prev.sections.food, ...prev.sections.desserts, ...prev.sections.other];
@@ -206,30 +188,22 @@ export default function SugerenciasAdmin() {
           return { ...it, section: sec, order: idx };
         });
 
-      const nextFood = secIds("FOOD", from, to, fromIds, toIds, prev.sections.food.map((x) => x.id), build);
-      const nextDess = secIds("DESSERT", from, to, fromIds, toIds, prev.sections.desserts.map((x) => x.id), build);
-      const nextOther = secIds("OTHER", from, to, fromIds, toIds, prev.sections.other.map((x) => x.id), build);
-
       return {
         ...prev,
         sections: {
-          food: nextFood as any,
-          desserts: nextDess as any,
-          other: nextOther as any,
+          food: secIds("FOOD", from, to, fromIds, toIds, prev.sections.food.map((x) => x.id), build) as any,
+          desserts: secIds("DESSERT", from, to, fromIds, toIds, prev.sections.desserts.map((x) => x.id), build) as any,
+          other: secIds("OTHER", from, to, fromIds, toIds, prev.sections.other.map((x) => x.id), build) as any,
         },
       };
     });
 
-    // Persist
     void (async () => {
-      if (from === to) {
-        await persistMoveOrReorder(from, to, toIds);
-      } else {
-        await persistMoveOrReorder(from, to, toIds, fromIds);
-      }
+      if (from === to) await persistMoveOrReorder(from, to, toIds);
+      else await persistMoveOrReorder(from, to, toIds, fromIds);
       setDrag(null);
       setDrop(null);
-      await load(); // Recargamos para asegurar que coincida con DB
+      await load(); 
     })();
   }
 
@@ -243,14 +217,7 @@ export default function SugerenciasAdmin() {
               <div className="sj-admin__brandSub">Admin Suggeriments</div>
             </div>
           </Link>
-
-          <div className="sj-admin__actions">
-            <div className="seg">
-              <button className={`seg__btn ${displayMode === "bilingual" ? "is-on" : ""}`} onClick={() => setDisplayMode("bilingual")} type="button">CA/ES</button>
-              <button className={`seg__btn ${displayMode === "ca" ? "is-on" : ""}`} onClick={() => setDisplayMode("ca")} type="button">CA</button>
-              <button className={`seg__btn ${displayMode === "es" ? "is-on" : ""}`} onClick={() => setDisplayMode("es")} type="button">ES</button>
-            </div>
-          </div>
+          <div className="sj-admin__actions"></div>
         </header>
 
         <div className="sj-admin__rule" />
@@ -288,56 +255,9 @@ export default function SugerenciasAdmin() {
               </div>
             ) : (
               <div className="sj-admin__col">
-                <SectionBlock
-                  title={{ ca: "Tapes i Plats", es: "Tapas y Platos" }}
-                  displayMode={displayMode}
-                  section="FOOD"
-                  items={food}
-                  drag={drag}
-                  drop={drop}
-                  onAdd={() => openNewItem("FOOD")}
-                  onEdit={openEditItem}
-                  onDelete={removeItem}
-                  onDragStart={(itemId) => setDrag({ itemId, from: "FOOD" })}
-                  onDragEnd={() => { setDrag(null); setDrop(null); }}
-                  onDragOver={(beforeId) => setDrop({ section: "FOOD", beforeId })}
-                  onDrop={(beforeId) => onDropInto("FOOD", beforeId)}
-                  onDropEnd={() => onDropInto("FOOD", undefined)}
-                />
-
-                <SectionBlock
-                  title={{ ca: "Postres", es: "Postres" }}
-                  displayMode={displayMode}
-                  section="DESSERT"
-                  items={desserts}
-                  drag={drag}
-                  drop={drop}
-                  onAdd={() => openNewItem("DESSERT")}
-                  onEdit={openEditItem}
-                  onDelete={removeItem}
-                  onDragStart={(itemId) => setDrag({ itemId, from: "DESSERT" })}
-                  onDragEnd={() => { setDrag(null); setDrop(null); }}
-                  onDragOver={(beforeId) => setDrop({ section: "DESSERT", beforeId })}
-                  onDrop={(beforeId) => onDropInto("DESSERT", beforeId)}
-                  onDropEnd={() => onDropInto("DESSERT", undefined)}
-                />
-
-                <SectionBlock
-                  title={{ ca: "Altres", es: "Otros" }}
-                  displayMode={displayMode}
-                  section="OTHER"
-                  items={other}
-                  drag={drag}
-                  drop={drop}
-                  onAdd={() => openNewItem("OTHER")}
-                  onEdit={openEditItem}
-                  onDelete={removeItem}
-                  onDragStart={(itemId) => setDrag({ itemId, from: "OTHER" })}
-                  onDragEnd={() => { setDrag(null); setDrop(null); }}
-                  onDragOver={(beforeId) => setDrop({ section: "OTHER", beforeId })}
-                  onDrop={(beforeId) => onDropInto("OTHER", beforeId)}
-                  onDropEnd={() => onDropInto("OTHER", undefined)}
-                />
+                <SectionBlock title="Tapes i Plats" section="FOOD" items={food} drag={drag} drop={drop} onAdd={() => openNewItem("FOOD")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "FOOD" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "FOOD", beforeId })} onDrop={(beforeId) => onDropInto("FOOD", beforeId)} onDropEnd={() => onDropInto("FOOD", undefined)} />
+                <SectionBlock title="Postres" section="DESSERT" items={desserts} drag={drag} drop={drop} onAdd={() => openNewItem("DESSERT")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "DESSERT" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "DESSERT", beforeId })} onDrop={(beforeId) => onDropInto("DESSERT", beforeId)} onDropEnd={() => onDropInto("DESSERT", undefined)} />
+                <SectionBlock title="Altres" section="OTHER" items={other} drag={drag} drop={drop} onAdd={() => openNewItem("OTHER")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "OTHER" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "OTHER", beforeId })} onDrop={(beforeId) => onDropInto("OTHER", beforeId)} onDropEnd={() => onDropInto("OTHER", undefined)} />
               </div>
             )}
           </div>
@@ -370,7 +290,7 @@ export default function SugerenciasAdmin() {
                   </label>
                   <label className="field field--small">
                     <span>Preu (€)</span>
-                    <input type="text" inputMode="decimal" placeholder="Ej: 3,50" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    <input type="text" inputMode="decimal" placeholder="Ej: 3,50" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.,]/g, ""))} />
                   </label>
                 </div>
 
@@ -396,8 +316,7 @@ export default function SugerenciasAdmin() {
 }
 
 function SectionBlock(props: {
-  title: LangText;
-  displayMode: DisplayMode;
+  title: string;
   section: Section;
   items: Item[];
 
@@ -415,7 +334,6 @@ function SectionBlock(props: {
   onDrop: (beforeId?: string) => void;
   onDropEnd: () => void;
 }) {
-  const heading = headingFor(props.title, props.displayMode);
   const isSectionDrop = props.drop?.section === props.section && !props.drop.beforeId;
 
   return (
@@ -424,19 +342,19 @@ function SectionBlock(props: {
       onDragOver={(e) => {
         if (!props.drag) return;
         e.preventDefault();
-        e.stopPropagation(); // <-- SOLUCIÓN DND
+        e.stopPropagation();
         props.onDragOver(undefined);
       }}
       onDrop={(e) => {
         if (!props.drag) return;
         e.preventDefault();
-        e.stopPropagation(); // <-- SOLUCIÓN DND
+        e.stopPropagation();
         props.onDropEnd();
       }}
     >
       <div className="menuSection__head">
         <div className="menuSection__headLeft">
-          <div className="menuSection__title">{heading}</div>
+          <div className="menuSection__title">{props.title}</div>
         </div>
         <div className="menuSection__headBtns">
           <button className="iconBtn" type="button" onClick={props.onAdd} title="Afegir">+</button>
@@ -458,82 +376,52 @@ function SectionBlock(props: {
                 onDragOver={(e) => {
                   if (!props.drag) return;
                   e.preventDefault();
-                  e.stopPropagation(); // <-- SOLUCIÓN DND
+                  e.stopPropagation();
                   props.onDragOver(it.id);
                 }}
                 onDrop={(e) => {
                   if (!props.drag) return;
                   e.preventDefault();
-                  e.stopPropagation(); // <-- SOLUCIÓN DND
+                  e.stopPropagation();
                   props.onDrop(it.id);
                 }}
               >
-                <span
-                  className="dragHandle dragHandle--row"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.effectAllowed = "move";
-                    props.onDragStart(it.id);
-                  }}
-                  onDragEnd={props.onDragEnd}
-                  title="Arrossega"
-                >
+                <span className="dragHandle dragHandle--row" draggable onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; props.onDragStart(it.id); }} onDragEnd={props.onDragEnd} title="Arrossega">
                   ⠿
                 </span>
 
                 <button className="menuRow" type="button" onClick={() => props.onEdit(it)}>
                   <div className="menuRow__left">
                     <div className="menuRow__titleLine">
-                      <span className="menuRow__title">- {headingFor(it.title, props.displayMode)}</span>
+                      {/* Título en grande (CA principal) */}
+                      <span className="menuRow__title">- {it.title.ca || it.title.es || "—"}</span>
                       <span className="menuRow__leader" />
                       <span className="menuRow__price">{fmtEUR(it.price)}</span>
                     </div>
-                    {props.displayMode === "bilingual" && pickText(it.title, "es") && pickText(it.title, "ca") && pickText(it.title, "es") !== pickText(it.title, "ca") && (
-                      <div className="menuRow__subItalic">{pickText(it.title, "es")}</div>
+                    {/* Título en pequeño (ES secundario si existe y es diferente) */}
+                    {it.title.es && it.title.es !== it.title.ca && (
+                      <div className="menuRow__subItalic" style={{ fontSize: "0.85em", color: "rgba(27, 43, 74, 0.65)", marginTop: "2px", fontWeight: "500", textAlign: "left" }}>
+                        {it.title.es}
+                      </div>
                     )}
                   </div>
                 </button>
 
-                <button className="iconBtn iconBtn--danger" type="button" title="Borrar" onClick={(e) => {
-                  e.stopPropagation();
-                  props.onDelete(it.id);
-                }}>
+                <button className="iconBtn iconBtn--danger" type="button" title="Borrar" onClick={(e) => { e.stopPropagation(); props.onDelete(it.id); }}>
                   🗑
                 </button>
               </div>
             );
           })}
 
-          <div
-            className="dropZone"
-            onDragOver={(e) => {
-              if (!props.drag) return;
-              e.preventDefault();
-              e.stopPropagation();
-              props.onDragOver(undefined);
-            }}
-            onDrop={(e) => {
-              if (!props.drag) return;
-              e.preventDefault();
-              e.stopPropagation();
-              props.onDropEnd();
-            }}
-          />
+          <div className="dropZone" onDragOver={(e) => { if (!props.drag) return; e.preventDefault(); e.stopPropagation(); props.onDragOver(undefined); }} onDrop={(e) => { if (!props.drag) return; e.preventDefault(); e.stopPropagation(); props.onDropEnd(); }} />
         </div>
       )}
     </section>
   );
 }
 
-function secIds(
-  sec: Section,
-  from: Section,
-  to: Section,
-  fromIds: string[],
-  toIds: string[],
-  originalIds: string[],
-  build: (sec: Section, ids: string[]) => Item[]
-) {
+function secIds(sec: Section, from: Section, to: Section, fromIds: string[], toIds: string[], originalIds: string[], build: (sec: Section, ids: string[]) => Item[]) {
   if (sec === to) return build(sec, toIds);
   if (sec === from) return build(sec, fromIds);
   return build(sec, originalIds);

@@ -321,29 +321,23 @@ app.delete("/admin/allergens/:id", requireAdmin, async (req, res) => {
 // ==========================================
 // 6. ADMINISTRACIÓN: SUGERENCIAS (¡NUEVO!)
 // ==========================================
-app.get("/admin/suggestions/current", requireAdmin, async (_req, res) => {
-  try {
-    // Buscamos la hoja más reciente ordenando por fecha de inicio
-    const sheet = await prisma.suggestionSheet.findFirst({
-      orderBy: { dateFrom: "desc" }
-    });
+app.post("/admin/reorder/suggestions/:sheetId/:section", requireAdmin, async (req, res) => {
+  const { section } = req.params;
+  
+  // EL TRUCO MAGISTRAL: Acepta tanto si el frontend envía { ids: [...] } como si envía directamente [...]
+  const ids = Array.isArray(req.body) ? req.body : req.body?.ids;
 
-    if (!sheet) return res.json({ sheet: null });
+  if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
 
-    // Buscamos los items de esta hoja por separado para evitar errores TS
-    const items = await prisma.suggestionItem.findMany({
-      where: { sheetId: sheet.id },
-      orderBy: { order: "asc" }
-    });
-
-    const food = items.filter((x: any) => x.section === "FOOD");
-    const desserts = items.filter((x: any) => x.section === "DESSERT");
-    const other = items.filter((x: any) => x.section === "OTHER");
-
-    res.json({ sheet: { ...sheet, sections: { food, desserts, other } } });
-  } catch (e) {
-    res.status(500).json({ error: "server_error" });
-  }
+  await prisma.$transaction(
+    ids.map((id: string, index: number) =>
+      prisma.suggestionItem.update({
+        where: { id },
+        data: { order: index, section: section as any }, // Magia para TypeScript
+      })
+    )
+  );
+  res.json({ ok: true });
 });
 
 app.post("/admin/suggestions/sheets", requireAdmin, async (req, res) => {

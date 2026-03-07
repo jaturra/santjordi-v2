@@ -16,8 +16,11 @@ export default function App() {
       <Route path="/carta" element={<Carta />} />
       <Route path="/sugerencias" element={<Sugerencias />} />
 
-      {/* Admin login (público) */}
+      {/* Admin login (Ruta original) */}
       <Route path="/admin/login" element={<AdminLogin />} />
+      
+      {/* NUEVA RUTA: Ahora puedes entrar por /login también */}
+      <Route path="/login" element={<AdminLogin />} />
 
       {/* Opcional: /admin -> /admin/carta */}
       <Route path="/admin" element={<Navigate to="/admin/carta" replace />} />
@@ -40,7 +43,7 @@ export default function App() {
         }
       />
 
-      {/* Fallback */}
+      {/* Fallback - Si la ruta no existe, vuelve al inicio */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

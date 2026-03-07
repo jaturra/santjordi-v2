@@ -6,9 +6,11 @@ import { Link } from "react-router-dom";
 type Lang = "ca" | "es";
 type LangText = api.LangText;
 
-function fmtEUR(n: number) {
-  const v = Number.isFinite(n) ? n : 0;
-  return `${v.toFixed(2).replace(".", ",")}€`;
+// 🚀 FIX DEL PRECIO: Misma protección que en el admin, asegura que si viene como "4.50" (string Decimal), lo renderiza bien.
+function fmtEUR(n: any) {
+  const v = Number(n);
+  const valid = Number.isFinite(v) ? v : 0;
+  return `${valid.toFixed(2).replace(".", ",")}€`;
 }
 
 const months = {
@@ -26,7 +28,7 @@ function formatRange(dateFromISO: string, dateToISO: string, lang: Lang) {
 }
 
 // Renderiza cada fila de plato para el cliente (Diseño Carta de Restaurante)
-function Row({ title, price }: { title: LangText; price: number }) {
+function Row({ title, price }: { title: LangText; price: any }) {
   const ca = title?.ca?.trim();
   const es = title?.es?.trim();
   

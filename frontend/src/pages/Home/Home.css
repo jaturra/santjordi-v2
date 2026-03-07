@@ -1,246 +1,261 @@
-:root{
-  /* Paleta estilo Carta/Admin (claro) */
-  --sj-bg: #f3f6fb;              /* fondo general */
-  --sj-paper: #ffffff;           /* tarjetas / “papel” */
-  --sj-text: #0b1a33;            /* texto principal */
-  --sj-muted: #5b6b86;           /* texto secundario */
-  --sj-line: rgba(15, 35, 80, .14);
-  --sj-shadow: 0 12px 26px rgba(15, 35, 80, .10);
-  --sj-radius: 18px;
-
-  --sj-blue: #1f3b7a;            /* azul principal */
-  --sj-gold: #d0a74a;            /* línea dorada */
-
-  /* Alias para compatibilidad */
-  --bg: var(--sj-bg);
-  --text: var(--sj-text);
-  --muted: var(--sj-muted);
-  --line: var(--sj-line);
-  --shadow: var(--sj-shadow);
-  --radius: var(--sj-radius);
-  --cta: var(--sj-blue);
-}
-
-.home{
+/* --- VARIABLES Y FONDO GENERAL --- */
+.home-base {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--sj-bg);
-  color: var(--sj-text);
+  background: #f3f6fb; /* Fondo azul clarito de tu admin */
+  color: #1b2b4a; /* Azul marino principal */
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, sans-serif;
 }
 
-/* Contenedor */
-.home__container{
-  width: min(1120px, calc(100% - 32px));
+/* --- HEADER SIMPLE --- */
+.home-base__header {
+  background: #ffffff;
+  padding: 16px 20px;
+  text-align: center;
+  border-bottom: 2px solid #d7b45a; /* Línea dorada */
+  box-shadow: 0 4px 15px rgba(10, 20, 40, 0.05);
+}
+.home-base__logo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: #233a77;
+  letter-spacing: 1px;
+}
+
+/* --- MAIN CONTENEDOR --- */
+.home-base__main {
+  flex: 1;
+  padding: 20px 16px;
+  max-width: 1200px; /* Ancho máximo de la web en PC */
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ========================================================
+   SECCIÓN 1: BANNER CON IMAGEN (EDITABLE)
+   ======================================================== */
+.home-banner {
+  margin-bottom: 40px;
+}
+
+.home-banner__image-wrapper {
+  position: relative;
+  margin: 0 auto;
+  border-radius: 20px; /* Bordes redondeados de la foto */
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(10, 20, 40, 0.15);
+  
+  /* 👇 EDITAR TAMAÑO DE LA IMAGEN 👇 
+     - height: Cambia '55vh' (55% de la pantalla) por '400px' o lo que quieras.
+     - max-width: Define lo ancha que será la foto. Pon '100%' si la quieres a todo el ancho.
+  */
+  height: 55vh; 
+  max-width: 900px; 
+}
+
+.home-banner__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-banner__overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to bottom, rgba(27, 43, 74, 0.4) 0%, rgba(10, 20, 40, 0.8) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* Alinea el texto hacia abajo */
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #ffffff;
+  box-sizing: border-box;
+}
+
+.home-banner__title {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin: 0;
+}
+.home-banner__rule {
+  height: 2px;
+  width: 60px;
+  background: #d7b45a;
+  margin: 14px auto;
+}
+.home-banner__subtitle {
+  font-size: 15px;
+  letter-spacing: 3px;
+  margin: 0 0 30px 0;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* --- BOTONES DEL BANNER --- */
+.home-banner__actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.home-banner__btn {
+  padding: 14px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  
+  /* 👇 EDITAR TAMAÑO TEXTO BOTONES 👇 
+     Sube este número (ej: 16px, 18px) si lo quieres más grande.
+  */
+  font-size: 15px; 
+}
+
+/* Botón 1: VER LA CARTA (Dorado) */
+.home-banner__btn--primary {
+  background: #d7b45a;
+  color: #1b2b4a;
+  border: 2px solid #d7b45a;
+}
+.home-banner__btn--primary:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Botón 2: SUGERENCIAS (Azul oscuro) */
+.home-banner__btn--secondary {
+  /* 👇 EDITAR COLOR BOTÓN SUGERENCIAS 👇 
+     - background: El color de fondo (ahora mismo es el azul marino de tu admin).
+     - color: El color de las letras (ahora mismo blanco).
+     - border: El color del borde.
+  */
+  background: #1b2b4a; 
+  color: #ffffff;
+  border: 2px solid #1b2b4a;
+}
+.home-banner__btn--secondary:hover {
+  background: #ffffff;
+  color: #1b2b4a;
+  border-color: #ffffff;
+}
+
+/* ========================================================
+   SECCIÓN 2: TARJETAS DE INFO (RESERVAS, HORARIO, MAPA)
+   ======================================================== */
+.home-info {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
-/* Header (sticky) */
-.home__header{
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: rgba(243, 246, 251, 0.85);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--sj-line);
+/* En PC, se ponen 3 columnas seguidas */
+@media (min-width: 800px) {
+  .home-info { grid-template-columns: repeat(3, 1fr); }
 }
 
-.home__headerInner{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding: 12px 0;
+.info-card {
+  background: #ffffff;
+  padding: 24px 20px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid rgba(20, 40, 80, 0.08);
+  box-shadow: 0 8px 25px rgba(10, 20, 40, 0.04);
 }
 
-/* Brand */
-.home__brand{
-  display:flex;
-  align-items:center;
+.info-card__icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.info-card__title {
+  margin: 0 0 12px 0;
+  color: #233a77;
+  font-weight: 900;
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.info-card__text {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: rgba(27, 43, 74, 0.7);
+}
+
+.info-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #1b2b4a;
+}
+.info-card__list li {
+  margin-bottom: 6px;
+}
+
+.info-card__note {
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(27, 43, 74, 0.5);
+  margin: 0;
+}
+
+.info-card__link--phone {
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  color: #d7b45a;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.info-card__btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #f5f8ff;
+  color: #233a77;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  border: 1px solid rgba(35, 58, 119, 0.2);
+  transition: all 0.2s ease;
+}
+.info-card__btn:hover {
+  background: #233a77;
+  color: #ffffff;
+}
+
+/* --- FOOTER LEGAL --- */
+.home-base__footer {
+  text-align: center;
+  padding: 24px 20px;
+  background: #1b2b4a; /* Fondo azul oscuro para cerrar la página */
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+.home-base__footer p {
+  margin: 0 0 10px 0;
+}
+.home-base__legal {
+  display: flex;
+  justify-content: center;
   gap: 12px;
 }
-
-.home__brandMark{
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display:grid;
-  place-items:center;
-  font-weight: 900;
-  color: #fff;
-  background: linear-gradient(135deg, var(--sj-blue), var(--sj-gold));
-  box-shadow: var(--sj-shadow);
-}
-
-.home__brandText{
-  line-height: 1.1;
-}
-
-.home__brandText small{
-  display:block;
-  margin-top: 3px;
-  color: var(--sj-muted);
-  font-size: 12px;
-}
-
-/* Main */
-.home__main{
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 26px 0 0;
-}
-
-/* Footer (siempre abajo) */
-.home__footer{
-  margin-top: auto;
-  padding: 18px 0;
-  color: var(--sj-muted);
-}
-
-.home__footerInner{
-  display:flex;
-  justify-content:space-between;
-  gap: 10px;
-  flex-wrap:wrap;
-}
-
-.home__footerLinks{
-  display:flex;
-  gap: 10px;
-  align-items:center;
-}
-
-.home__footerLinks a{
-  color: var(--sj-muted);
-  text-decoration:none;
-}
-
-.home__footerLinks a:hover{
-  color: var(--sj-text);
-}
-
-/* =========================================================
-   Actions (Carta / Sugerencias)
-========================================================= */
-.home__actions{
-  background: var(--sj-paper);
-  border: 1px solid var(--sj-line);
-  border-radius: 14px;
-  box-shadow: var(--sj-shadow);
-  padding: 22px;
-
-  display: grid;
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
-  gap: 26px;
-  justify-items: center;
-  align-items: start;
-}
-
-.home__action{
-  width: min(420px, 100%);
-  display: grid;
-  justify-items: center;
-  gap: 14px;
-
+.home-base__legal a {
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  color: inherit;
-
-  padding: 14px 10px;
-  border-radius: 14px;
 }
-
-.home__actionBadge{
-  width: 90px;
-  height: 90px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-
-  background: rgba(31, 59, 122, 0.08);
-  border: 1px solid rgba(31, 59, 122, 0.16);
-  box-shadow: 0 10px 26px rgba(15, 35, 80, 0.08);
-
-  transition: transform 140ms ease;
-}
-
-.home__badgeIcon{
-  width: 40px;
-  height: 40px;
-  color: var(--sj-blue);
-  display: block;
-}
-
-.home__actionBtn{
-  width: 100%;
-  max-width: 360px;
-
-  background: var(--sj-blue);
-  color: #fff;
-  border-radius: 10px;
-  border: 1px solid rgba(31, 59, 122, 0.35);
-
-  padding: 12px 18px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-
-  box-shadow: 0 10px 20px rgba(15, 35, 80, 0.18);
-  transition: transform 140ms ease, filter 140ms ease;
-
-  user-select: none;
-  white-space: nowrap;
-}
-
-.home__btnIcon{
-  width: 18px;
-  height: 18px;
-  color: #fff;
-  flex: 0 0 auto;
-  display: block;
-}
-
-.home__action:hover .home__actionBtn{
-  transform: translateY(-1px);
-  filter: brightness(1.04);
-}
-
-.home__action:hover .home__actionBadge{
-  transform: translateY(-1px) scale(1.02);
-}
-
-/* Línea dorada bajo el bloque hero (opcional) */
-.home__hero::after{
-  content:"";
-  display:block;
-  height: 2px;
-  margin-top: 18px;
-  background: var(--sj-gold);
-  opacity: .65;
-}
-
-/* =========================================================
-   Responsive
-========================================================= */
-@media (max-width: 820px){
-  .home__actions{
-    grid-template-columns: 1fr; /* apilar */
-    gap: 18px;
-    padding: 18px;
-  }
-
-  .home__action{
-    width: 100%;
-    justify-items: center;
-  }
-
-  .home__actionBtn{
-    width: min(360px, 92%);
-    max-width: none;
-  }
+.home-base__legal a:hover {
+  color: #d7b45a;
 }

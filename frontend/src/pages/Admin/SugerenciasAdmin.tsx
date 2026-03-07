@@ -3,28 +3,13 @@ import "../Admin/Admin.css";
 import * as api from "../../api/sjApi";
 import { Link } from "react-router-dom";
 
-type DisplayMode = "bilingual" | "ca" | "es";
 type LangText = api.LangText;
 type Section = api.SuggestionSection;
 
-const DISPLAY_KEY = "sj_admin_displayMode";
-
-// 🚀 FIX DEL PRECIO: Ahora convierte todo a número asegurándose de que nunca devuelva 0,00€ por error
 function fmtEUR(n: any) {
   const v = Number(n);
   const valid = Number.isFinite(v) ? v : 0;
   return `${valid.toFixed(2).replace(".", ",")}€`;
-}
-
-function pickText(t: LangText, lang: "ca" | "es") {
-  return (t?.[lang] ?? "").trim();
-}
-
-function headingFor(t: LangText, mode: DisplayMode) {
-  const ca = pickText(t, "ca");
-  const es = pickText(t, "es");
-  if (mode === "bilingual") return ca && es ? `${ca} / ${es}` : ca || es || "—";
-  return (t?.[mode] ?? "").trim() || (mode === "ca" ? es : ca) || "—";
 }
 
 function isoDate(d: Date) {
@@ -35,7 +20,6 @@ type Item = { id: string; section: Section; title: LangText; price: any; order: 
 type Drag = null | { itemId: string; from: Section };
 
 export default function SugerenciasAdmin() {
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("bilingual");
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<api.AdminSuggestionsCurrent["sheet"]>(null);
 
@@ -49,13 +33,6 @@ export default function SugerenciasAdmin() {
 
   const [drag, setDrag] = useState<Drag>(null);
   const [drop, setDrop] = useState<null | { section: Section; beforeId?: string }>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(DISPLAY_KEY);
-    if (saved === "bilingual" || saved === "ca" || saved === "es") setDisplayMode(saved);
-  }, []);
-
-  useEffect(() => localStorage.setItem(DISPLAY_KEY, displayMode), [displayMode]);
 
   async function load() {
     setLoading(true);
@@ -93,7 +70,6 @@ export default function SugerenciasAdmin() {
     setDlg({ section: item.section, editing: item });
     setTitleCa(item.title.ca || "");
     setTitleEs(item.title.es || "");
-    // Cargamos el precio limpio para editar
     setPrice(Number(item.price || 0).toString().replace(".", ",")); 
   }
 
@@ -162,7 +138,6 @@ export default function SugerenciasAdmin() {
     return other as any;
   }
 
-  // 🚀 FIX DEL DRAG AND DROP: Usando la API oficial del proyecto
   async function persistMoveOrReorder(from: Section, to: Section, nextToIds: string[], nextFromIds?: string[]) {
     if (!sheet) return;
     try {
@@ -407,12 +382,10 @@ function SectionBlock(props: {
                 <button className="menuRow" type="button" onClick={() => props.onEdit(it)}>
                   <div className="menuRow__left">
                     <div className="menuRow__titleLine">
-                      {/* ESTÉTICA CARTA REAL: Catalán principal */}
                       <span className="menuRow__title">- {it.title.ca || it.title.es || "—"}</span>
                       <span className="menuRow__leader" />
                       <span className="menuRow__price">{fmtEUR(it.price)}</span>
                     </div>
-                    {/* ESTÉTICA CARTA REAL: Castellano secundario y en cursiva (solo si es diferente) */}
                     {it.title.es && it.title.es !== it.title.ca && (
                       <div className="menuRow__subItalic" style={{ fontSize: "0.85em", color: "rgba(27, 43, 74, 0.65)", marginTop: "2px", fontWeight: "500", textAlign: "left" }}>
                         {it.title.es}

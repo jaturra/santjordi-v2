@@ -8,13 +8,22 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       const { token } = await api.loginAdmin({ username, password });
+      
+      // 1. Configuramos tu API como ya lo hacías
       api.setToken(token);
+      
+      // 2. 👇 EL SEGURO DE VIDA (Guardamos explícitamente en el navegador) 👇
+      localStorage.setItem("token", token);
+      localStorage.setItem("admin", "true");
+      
+      // 3. Navegamos a la página protegida
       nav("/admin/carta");
+      
     } catch (err: any) {
       alert(err?.message ?? "Login error");
     } finally {

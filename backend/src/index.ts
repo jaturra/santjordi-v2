@@ -4,18 +4,44 @@ import cors from "cors";
 import { prisma } from "./db";
 import { requireAdmin, signAdminToken } from "./auth";
 
-
 const app = express();
 
-app.use(cors());
+// --- CONFIGURACIÓN CORS MEJORADA ---
+// Lista de dominios permitidos
+const allowedOrigins = [
+  "http://localhost:5173", // Vite local
+  "http://localhost:3000", // Backend local (por si acaso)
+  process.env.FRONTEND_URL, // <--- ¡IMPORTANTE! Define esto en Coolify (ej: https://tudominio.com)
+  // "https://mi-bar-web.com" // Puedes poner tu dominio "a fuego" aquí si prefieres
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origen (como Postman o curl) o si el origen está en la lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ Bloqueado por CORS: ${origin}`); // Esto saldrá en los logs de Coolify si falla
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Permite envío de headers seguros
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+// -----------------------------------
+
 app.use(express.json());
+
+// Log de peticiones (muy útil en producción)
 app.use((req, _res, next) => {
-  console.log("REQ", req.method, req.url);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+// --- FUNCIONES UTILITARIAS ---
 function asISO(d: Date) {
   return d.toISOString();
 }
@@ -24,8 +50,7 @@ function assertSuggestionSection(x: any): x is "FOOD" | "DESSERT" | "OTHER" {
   return x === "FOOD" || x === "DESSERT" || x === "OTHER";
 }
 
-
-// Admin login endpoint
+// --- ENDPOINTS DE AUTENTICACIÓN ---
 app.post("/auth/login", (req, res) => {
   const { username, password } = req.body ?? {};
 
@@ -46,7 +71,7 @@ app.post("/auth/login", (req, res) => {
   return res.json({ token });
 });
 
-// Create Department endpoint
+// --- ENDPOINTS DE DEPARTAMENTOS ---
 app.post("/admin/departments", requireAdmin, async (req, res) => {
   const { title, order } = req.body ?? {};
 
@@ -64,7 +89,6 @@ app.post("/admin/departments", requireAdmin, async (req, res) => {
   res.json({ id: created.id });
 });
 
-// Update Department endpoint
 app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { title, order } = req.body ?? {};
@@ -80,17 +104,12 @@ app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// Delete Department endpoint
 app.delete("/admin/departments/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-
   await prisma.department.delete({ where: { id } });
-
   res.json({ ok: true });
 });
 
-
-// Reorder Departments endpoint
 app.post("/admin/reorder/departments", requireAdmin, async (req, res) => {
   const { ids } = req.body ?? {};
 
@@ -110,7 +129,7 @@ app.post("/admin/reorder/departments", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
-// Create Item endpoint
+// --- ENDPOINTS DE ITEMS ---
 app.post("/admin/items", requireAdmin, async (req, res) => {
   const { departmentId, title, price, allergens, order } = req.body ?? {};
 
@@ -143,7 +162,6 @@ app.post("/admin/items", requireAdmin, async (req, res) => {
   res.json({ id: created.id });
 });
 
-// Update Item endpoint
 app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { departmentId, title, price, allergens, order } = req.body ?? {};
@@ -154,7 +172,6 @@ app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
   if (price !== undefined) data.price = price;
   if (order !== undefined) data.order = order;
 
-  // Si viene allergens, los reemplazamos
   if (allergens !== undefined) {
     const allergenIds: string[] = Array.isArray(allergens)
       ? allergens.filter((x) => typeof x === "string")
@@ -174,15 +191,38 @@ app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete("/admin/items/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  await prisma.item.delete({ where: { id } });
+  res.json({ ok: true });
+});
 
+app.post("/admin/reorder/items/:departmentId", requireAdmin, async (req, res) => {
+  const { departmentId } = req.params;
+  const { ids } = req.body ?? {};
 
-// Admin ping endpoint
+  if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
+    return res.status(400).json({ error: "ids_invalid" });
+  }
+
+  await prisma.$transaction(
+    ids.map((id: string, index: number) =>
+      prisma.item.update({
+        where: { id },
+        data: { order: index, departmentId },
+      })
+    )
+  );
+
+  res.json({ ok: true });
+});
+
+// --- ADMIN PING ---
 app.get("/admin/ping", requireAdmin, (_req, res) => {
   res.json({ ok: true });
 });
 
-
-// Mocked menu data
+// --- MENU PÚBLICO (MOCKED / REAL) ---
 app.get("/menu", async (_req, res) => {
   const departments = await prisma.department.findMany({
     orderBy: { order: "asc" },
@@ -243,69 +283,7 @@ app.get("/menu", async (_req, res) => {
   });
 });
 
-
-// Current Suggestions Sheet endpoint
-app.get("/suggestions/current", async (_req, res) => {
-  const sheet = await prisma.suggestionSheet.findFirst({
-    where: { isActive: true },
-    orderBy: { dateFrom: "desc" },
-    include: {
-      items: { orderBy: { order: "asc" } },
-    },
-  });
-
-  if (!sheet) return res.json({ sheet: null });
-
-  const food = sheet.items.filter((x) => x.section === "FOOD");
-  const desserts = sheet.items.filter((x) => x.section === "DESSERT");
-  const other = sheet.items.filter((x) => x.section === "OTHER");
-
-  return res.json({
-    sheet: {
-      id: sheet.id,
-      dateFrom: asISO(sheet.dateFrom),
-      dateTo: asISO(sheet.dateTo),
-      sections: {
-        food: food.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
-        desserts: desserts.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
-        other: other.map((i) => ({ id: i.id, title: i.title as any, price: Number(i.price), order: i.order })),
-      },
-    },
-  });
-});
-
-
-// Delete Item endpoint
-app.delete("/admin/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  await prisma.item.delete({ where: { id } });
-
-  res.json({ ok: true });
-});
-
-// Reorder Items endpoint
-app.post("/admin/reorder/items/:departmentId", requireAdmin, async (req, res) => {
-  const { departmentId } = req.params;
-  const { ids } = req.body ?? {};
-
-  if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
-    return res.status(400).json({ error: "ids_invalid" });
-  }
-
-  await prisma.$transaction(
-    ids.map((id: string, index: number) =>
-      prisma.item.update({
-        where: { id },
-        data: { order: index, departmentId },
-      })
-    )
-  );
-
-  res.json({ ok: true });
-});
-
-// Create Supplement Group endpoint
+// --- ENDPOINTS DE SUPLEMENTOS ---
 app.post("/admin/supplement-groups", requireAdmin, async (req, res) => {
   const { title, order } = req.body ?? {};
 
@@ -323,7 +301,6 @@ app.post("/admin/supplement-groups", requireAdmin, async (req, res) => {
   res.json({ id: created.id });
 });
 
-// Update Supplement Group endpoint
 app.patch("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { title, order } = req.body ?? {};
@@ -339,14 +316,12 @@ app.patch("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
 
     res.json({ ok: true });
   } catch (e: any) {
-    // P2025 = record not found
     if (e?.code === "P2025") return res.status(404).json({ error: "not_found" });
     console.error("update supplement-group failed:", e);
     return res.status(500).json({ error: "update_failed" });
   }
 });
 
-// Delete Supplement Group endpoint
 app.delete("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
 
@@ -360,7 +335,6 @@ app.delete("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// Create Supplement Item endpoint
 app.post("/admin/supplement-items", requireAdmin, async (req, res) => {
   const { groupId, title, price, allergens, order } = req.body ?? {};
 
@@ -393,8 +367,6 @@ app.post("/admin/supplement-items", requireAdmin, async (req, res) => {
   res.json({ id: created.id });
 });
 
-
-// Update Supplement Item endpoint
 app.patch("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { groupId, title, price, allergens, order } = req.body ?? {};
@@ -430,9 +402,6 @@ app.patch("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   }
 });
 
-
-
-//  Delete Supplement Item endpoint
 app.delete("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
 
@@ -446,8 +415,6 @@ app.delete("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
   }
 });
 
-
-// Reorder Supplement Items endpoint
 app.post("/admin/reorder/supplement-items/:groupId", requireAdmin, async (req, res) => {
   const { groupId } = req.params;
   const { ids } = req.body ?? {};
@@ -468,8 +435,7 @@ app.post("/admin/reorder/supplement-items/:groupId", requireAdmin, async (req, r
   res.json({ ok: true });
 });
 
-
-// Create Allergen endpoint
+// --- ENDPOINTS DE ALÉRGENOS ---
 app.post("/admin/allergens", requireAdmin, async (req, res) => {
   try {
     const { code, label } = req.body ?? {};
@@ -494,8 +460,6 @@ app.post("/admin/allergens", requireAdmin, async (req, res) => {
   }
 });
 
-
-// Delete Allergen endpoint
 app.delete("/admin/allergens/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
 
@@ -529,12 +493,101 @@ app.delete("/admin/allergens/:id", requireAdmin, async (req, res) => {
   }
 });
 
-
-
-
-// Example endpoint
 app.get("/api/ping", (_req, res) => {
   res.json({ pong: true, ts: Date.now() });
+});
+
+// --- ENDPOINTS DE SUGERENCIAS ---
+app.get("/admin/suggestions/current", requireAdmin, async (_req, res) => {
+  try {
+    const sheet = await prisma.suggestionSheet.findFirst({
+      orderBy: { createdAt: "desc" },
+      include: { items: { orderBy: { order: "asc" } } },
+    });
+
+    if (!sheet) return res.json({ sheet: null });
+
+    const food = sheet.items.filter((x: any) => x.section === "FOOD");
+    const desserts = sheet.items.filter((x: any) => x.section === "DESSERT");
+    const other = sheet.items.filter((x: any) => x.section === "OTHER");
+
+    res.json({ sheet: { ...sheet, sections: { food, desserts, other } } });
+  } catch (e) {
+    res.status(500).json({ error: "server_error" });
+  }
+});
+
+app.post("/admin/suggestions/sheets", requireAdmin, async (req, res) => {
+  const { dateFrom, dateTo, isActive } = req.body ?? {};
+  const created = await prisma.suggestionSheet.create({
+    data: {
+      dateFrom: new Date(dateFrom),
+      dateTo: new Date(dateTo),
+      isActive: isActive ?? true,
+    },
+  });
+  res.json({ id: created.id });
+});
+
+app.patch("/admin/suggestions/sheets/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { dateFrom, dateTo } = req.body ?? {};
+  await prisma.suggestionSheet.update({
+    where: { id },
+    data: {
+      ...(dateFrom ? { dateFrom: new Date(dateFrom) } : {}),
+      ...(dateTo ? { dateTo: new Date(dateTo) } : {}),
+    },
+  });
+  res.json({ ok: true });
+});
+
+app.post("/admin/suggestions/items", requireAdmin, async (req, res) => {
+  const { sheetId, section, title, price, order } = req.body ?? {};
+  const created = await prisma.suggestionItem.create({
+    data: {
+      sheetId, section, title, 
+      price: Number(price) || 0,
+      order: order || 0,
+    },
+  });
+  res.json({ id: created.id });
+});
+
+app.patch("/admin/suggestions/items/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, price } = req.body ?? {};
+  await prisma.suggestionItem.update({
+    where: { id },
+    data: {
+      ...(title ? { title } : {}),
+      ...(price !== undefined ? { price: Number(price) } : {}),
+    },
+  });
+  res.json({ ok: true });
+});
+
+app.delete("/admin/suggestions/items/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  await prisma.suggestionItem.delete({ where: { id } });
+  res.json({ ok: true });
+});
+
+app.post("/admin/reorder/suggestions/:sheetId/:section", requireAdmin, async (req, res) => {
+  const { section } = req.params;
+  const { ids } = req.body ?? {};
+
+  if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
+
+  await prisma.$transaction(
+    ids.map((id: string, index: number) =>
+      prisma.suggestionItem.update({
+        where: { id },
+        data: { order: index, section },
+      })
+    )
+  );
+  res.json({ ok: true });
 });
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;

@@ -3,7 +3,7 @@ import "./Home.css";
 
 export default function Home() {
   // 👇 PON AQUÍ TUS DATOS REALES 👇
-  const phoneNumber = "600 000 000"; 
+  const phoneNumber = "936 45 85 44"; 
   const cleanPhoneUrl = phoneNumber.replace(/\s/g, '');
   
   // Pon aquí la dirección de Google Maps de tu local para que el botón funcione

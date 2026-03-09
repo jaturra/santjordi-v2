@@ -48,9 +48,10 @@ type Dialog =
   | { type: "suppItem"; groupId: string; id?: string }
   | { type: "allergens" };
 
+// 🚀 FIX: Unificamos el drag para "secciones" globales
 type DragState =
   | null
-  | { kind: "dept"; deptId: string }
+  | { kind: "section"; id: string }
   | { kind: "item"; itemId: string; fromDeptId: string }
   | { kind: "suppItem"; itemId: string; fromGroupId: string };
 
@@ -105,10 +106,9 @@ export default function Admin() {
 
   // DnD UI
   const [drag, setDrag] = useState<DragState>(null);
-  const [dropDeptId, setDropDeptId] = useState<string | null>(null);
+  const [dropSectionId, setDropSectionId] = useState<string | null>(null);
   const [dropItemId, setDropItemId] = useState<string | null>(null);
   const [dropSuppItemId, setDropSuppItemId] = useState<string | null>(null);
-  const [dropGroupId, setDropGroupId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -143,11 +143,19 @@ export default function Admin() {
     localStorage.setItem(DISPLAY_KEY, state.displayMode);
   }, [state.displayMode]);
 
-  const departments = useMemo(() => [...state.departments].sort((a, b) => a.order - b.order), [state.departments]);
-  const supplementGroups = useMemo(
-    () => [...state.supplementGroups].sort((a, b) => a.order - b.order),
-    [state.supplementGroups]
-  );
+  // 🚀 FIX: Unificamos Departamentos y Suplementos para poder intercalarlos visualmente
+  type SectionObj =
+    | { kind: "dept"; id: string; data: Department }
+    | { kind: "suppGroup"; id: string; data: SupplementGroup };
+
+  const unifiedSections = useMemo(() => {
+    const arr: SectionObj[] = [
+      ...state.departments.map((d) => ({ kind: "dept" as const, id: d.id, data: d })),
+      ...state.supplementGroups.map((g) => ({ kind: "suppGroup" as const, id: g.id, data: g })),
+    ];
+    // Se ordenan de menor a mayor respetando el orden global
+    return arr.sort((a, b) => a.data.order - b.data.order);
+  }, [state.departments, state.supplementGroups]);
 
   const itemsByDept = useMemo(() => {
     const map = new Map<string, MenuItem[]>();
@@ -177,12 +185,8 @@ export default function Admin() {
 
   const editingDept = dialog?.type === "dept" && dialog.id ? state.departments.find((d) => d.id === dialog.id) : undefined;
   const editingItem = dialog?.type === "item" && dialog.id ? state.items.find((it) => it.id === dialog.id) : undefined;
-
-  const editingSuppGroup =
-    dialog?.type === "suppGroup" && dialog.id ? state.supplementGroups.find((g) => g.id === dialog.id) : undefined;
-
-  const editingSuppItem =
-    dialog?.type === "suppItem" && dialog.id ? state.supplementItems.find((it) => it.id === dialog.id) : undefined;
+  const editingSuppGroup = dialog?.type === "suppGroup" && dialog.id ? state.supplementGroups.find((g) => g.id === dialog.id) : undefined;
+  const editingSuppItem = dialog?.type === "suppItem" && dialog.id ? state.supplementItems.find((it) => it.id === dialog.id) : undefined;
 
   const primaryLang = primaryLangFrom(state.displayMode);
   const secondaryLang = otherLang(primaryLang);
@@ -190,15 +194,6 @@ export default function Admin() {
   // =========================
   // DnD persistence helpers
   // =========================
-  async function persistDeptOrder(next: Department[]) {
-    try {
-      await api.reorderDepartments(next.map((d) => d.id));
-    } catch (e: any) {
-      alert(e?.message ?? "Error guardant ordre de departaments");
-      await loadMenu();
-    }
-  }
-
   async function persistItemsOrder(deptId: string, ids: string[]) {
     try {
       await api.reorderItems(deptId, ids);
@@ -218,20 +213,47 @@ export default function Admin() {
   }
 
   // =========================
-  // DnD: Departments reorder
+  // DnD: Unificado para reordenar departamentos entre suplementos
   // =========================
-  function dropDepartmentOn(targetDeptId: string) {
-    if (!drag || drag.kind !== "dept") return;
-    if (drag.deptId === targetDeptId) return;
+  function dropSectionOn(targetId: string) {
+    if (!drag || drag.kind !== "section") return;
+    if (drag.id === targetId) return;
 
-    const sorted = [...departments];
-    const from = sorted.findIndex((d) => d.id === drag.deptId);
-    const to = sorted.findIndex((d) => d.id === targetDeptId);
+    const sorted = [...unifiedSections];
+    const from = sorted.findIndex((x) => x.id === drag.id);
+    const to = sorted.findIndex((x) => x.id === targetId);
     if (from < 0 || to < 0) return;
 
-    const next = reorder(sorted, from, to).map((d, idx) => ({ ...d, order: idx }));
-    setState((p) => ({ ...p, departments: next }));
-    void persistDeptOrder(next);
+    const next = reorder(sorted, from, to);
+
+    const nextDepts: Department[] = [];
+    const nextSupps: SupplementGroup[] = [];
+
+    // Asignamos el nuevo orden global (0, 1, 2, 3...)
+    next.forEach((sec, idx) => {
+      if (sec.kind === "dept") {
+        nextDepts.push({ ...sec.data, order: idx });
+      } else {
+        nextSupps.push({ ...sec.data, order: idx });
+      }
+    });
+
+    setState((p) => ({ ...p, departments: nextDepts, supplementGroups: nextSupps }));
+
+    // Lo guardamos en el backend de forma individual para no perder la mezcla
+    void (async () => {
+      try {
+        await Promise.all(
+          next.map((sec, idx) => {
+            if (sec.kind === "dept") return api.updateDepartment(sec.id, { title: sec.data.title, order: idx });
+            else return api.updateSupplementGroup(sec.id, { title: sec.data.title, order: idx });
+          })
+        );
+      } catch (e: any) {
+        alert(e?.message ?? "Error guardant ordre global");
+        await loadMenu();
+      }
+    })();
   }
 
   // =========================
@@ -258,7 +280,6 @@ export default function Admin() {
     const sourceIds = sourceList.map((x) => x.id);
     const targetIds = targetList2.map((x) => x.id);
 
-    // Update local state orders
     const sourceOrder = new Map(sourceIds.map((id, i) => [id, i]));
     const targetOrder = new Map(targetIds.map((id, i) => [id, i]));
 
@@ -281,7 +302,6 @@ export default function Admin() {
       }),
     }));
 
-    // Persist
     void (async () => {
       if (!sameDept) await persistItemsOrder(sourceDeptId, sourceIds);
       await persistItemsOrder(targetDeptId, targetIds);
@@ -342,10 +362,9 @@ export default function Admin() {
 
   function clearDnD() {
     setDrag(null);
-    setDropDeptId(null);
+    setDropSectionId(null);
     setDropItemId(null);
     setDropSuppItemId(null);
-    setDropGroupId(null);
   }
 
   return (
@@ -403,51 +422,54 @@ export default function Admin() {
         ) : (
           <div className="sj-admin__grid sj-admin__grid--stack">
             <div className="sj-admin__col">
-              {departments.map((d) => (
-                <MenuSection
-                  key={d.id}
-                  deptId={d.id}
-                  title={d.title}
-                  displayMode={state.displayMode}
-                  primaryLang={primaryLang}
-                  secondaryLang={secondaryLang}
-                  items={(itemsByDept.get(d.id) ?? []).filter(Boolean)}
-                  allergens={state.allergens}
-                  isDrop={dropDeptId === d.id && drag?.kind === "dept"}
-                  onAdd={() => setDialog({ type: "item", deptId: d.id })}
-                  onEdit={() => setDialog({ type: "dept", id: d.id })}
-                  onEditItem={(id) => setDialog({ type: "item", deptId: d.id, id })}
-                  // dept dnd
-                  onDeptDragStart={() => setDrag({ kind: "dept", deptId: d.id })}
-                  onDeptDragEnd={clearDnD}
-                  onDeptDragOver={() => {
-                    if (drag?.kind === "dept") setDropDeptId(d.id);
-                  }}
-                  onDeptDrop={() => {
-                    dropDepartmentOn(d.id);
-                    clearDnD();
-                  }}
-                  // item dnd
-                  drag={drag}
-                  dropItemId={dropItemId}
-                  setDropItemId={setDropItemId}
-                  onItemDrop={(targetItemId) => {
-                    dropItemOn(d.id, targetItemId);
-                    clearDnD();
-                  }}
-                  onItemDropEnd={() => {
-                    dropItemOn(d.id, undefined);
-                    clearDnD();
-                  }}
-                  onItemDragStart={(itemId) => setDrag({ kind: "item", itemId, fromDeptId: d.id })}
-                />
-              ))}
-
-              {supplementGroups.length > 0 && (
-                <div className="sj-admin__suppWrap">
-                  {supplementGroups.map((g) => (
+              {/* 🚀 Renderizamos TODAS las secciones intercaladas por su orden global */}
+              {unifiedSections.map((sec) => {
+                if (sec.kind === "dept") {
+                  const d = sec.data;
+                  return (
+                    <MenuSection
+                      key={`dept-${d.id}`}
+                      deptId={d.id}
+                      title={d.title}
+                      displayMode={state.displayMode}
+                      primaryLang={primaryLang}
+                      secondaryLang={secondaryLang}
+                      items={(itemsByDept.get(d.id) ?? []).filter(Boolean)}
+                      allergens={state.allergens}
+                      isDrop={dropSectionId === d.id && drag?.kind === "section"}
+                      onAdd={() => setDialog({ type: "item", deptId: d.id })}
+                      onEdit={() => setDialog({ type: "dept", id: d.id })}
+                      onEditItem={(id) => setDialog({ type: "item", deptId: d.id, id })}
+                      // Section DnD
+                      onSectionDragStart={() => setDrag({ kind: "section", id: d.id })}
+                      onSectionDragEnd={clearDnD}
+                      onSectionDragOver={() => {
+                        if (drag?.kind === "section") setDropSectionId(d.id);
+                      }}
+                      onSectionDrop={() => {
+                        dropSectionOn(d.id);
+                        clearDnD();
+                      }}
+                      // Item DnD
+                      drag={drag}
+                      dropItemId={dropItemId}
+                      setDropItemId={setDropItemId}
+                      onItemDrop={(targetItemId) => {
+                        dropItemOn(d.id, targetItemId);
+                        clearDnD();
+                      }}
+                      onItemDropEnd={() => {
+                        dropItemOn(d.id, undefined);
+                        clearDnD();
+                      }}
+                      onItemDragStart={(itemId) => setDrag({ kind: "item", itemId, fromDeptId: d.id })}
+                    />
+                  );
+                } else {
+                  const g = sec.data;
+                  return (
                     <SupplementBox
-                      key={g.id}
+                      key={`supp-${g.id}`}
                       groupId={g.id}
                       title={g.title}
                       displayMode={state.displayMode}
@@ -455,17 +477,25 @@ export default function Admin() {
                       secondaryLang={secondaryLang}
                       items={(suppItemsByGroup.get(g.id) ?? []).filter(Boolean)}
                       allergens={state.allergens}
-                      isDrop={dropGroupId === g.id && drag?.kind === "suppItem"}
+                      isDrop={dropSectionId === g.id && drag?.kind === "section"}
                       onAdd={() => setDialog({ type: "suppItem", groupId: g.id })}
                       onEdit={() => setDialog({ type: "suppGroup", id: g.id })}
                       onEditItem={(id) => setDialog({ type: "suppItem", groupId: g.id, id })}
+                      // Section DnD
+                      onSectionDragStart={() => setDrag({ kind: "section", id: g.id })}
+                      onSectionDragEnd={clearDnD}
+                      onSectionDragOver={() => {
+                        if (drag?.kind === "section") setDropSectionId(g.id);
+                      }}
+                      onSectionDrop={() => {
+                        dropSectionOn(g.id);
+                        clearDnD();
+                      }}
+                      // Item DnD
                       drag={drag}
                       dropSuppItemId={dropSuppItemId}
                       setDropSuppItemId={setDropSuppItemId}
                       onSuppItemDragStart={(itemId) => setDrag({ kind: "suppItem", itemId, fromGroupId: g.id })}
-                      onSuppDragOver={() => {
-                        if (drag?.kind === "suppItem") setDropGroupId(g.id);
-                      }}
                       onSuppDropEnd={() => {
                         dropSuppItemOn(g.id, undefined);
                         clearDnD();
@@ -475,9 +505,9 @@ export default function Admin() {
                         clearDnD();
                       }}
                     />
-                  ))}
-                </div>
-              )}
+                  );
+                }
+              })}
             </div>
           </div>
         )}
@@ -711,7 +741,7 @@ export default function Admin() {
 }
 
 /* =========================
-   UI Components (igual que antes)
+   UI Components 
 ========================= */
 
 function MenuSection(props: {
@@ -728,10 +758,10 @@ function MenuSection(props: {
   onEdit: () => void;
   onEditItem: (id: string) => void;
 
-  onDeptDragStart: () => void;
-  onDeptDragEnd: () => void;
-  onDeptDragOver: () => void;
-  onDeptDrop: () => void;
+  onSectionDragStart: () => void;
+  onSectionDragEnd: () => void;
+  onSectionDragOver: () => void;
+  onSectionDrop: () => void;
 
   drag: DragState;
   dropItemId: string | null;
@@ -746,9 +776,9 @@ function MenuSection(props: {
     <section
       className={`menuSection ${props.isDrop ? "is-drop" : ""}`}
       onDragOver={(e) => {
-        if (props.drag?.kind === "dept") {
+        if (props.drag?.kind === "section") {
           e.preventDefault();
-          props.onDeptDragOver();
+          props.onSectionDragOver();
         }
         if (props.drag?.kind === "item") {
           e.preventDefault();
@@ -756,7 +786,7 @@ function MenuSection(props: {
       }}
       onDrop={(e) => {
         e.preventDefault();
-        if (props.drag?.kind === "dept") props.onDeptDrop();
+        if (props.drag?.kind === "section") props.onSectionDrop();
         if (props.drag?.kind === "item") props.onItemDropEnd();
       }}
     >
@@ -767,9 +797,9 @@ function MenuSection(props: {
             draggable
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = "move";
-              props.onDeptDragStart();
+              props.onSectionDragStart();
             }}
-            onDragEnd={props.onDeptDragEnd}
+            onDragEnd={props.onSectionDragEnd}
             title="Arrossega per reordenar departaments"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -803,6 +833,7 @@ function MenuSection(props: {
               onDragOver={(e) => {
                 if (props.drag?.kind !== "item") return;
                 e.preventDefault();
+                e.stopPropagation(); // 🚀 FIX: Evita que el evento suba a la sección grande
                 props.setDropItemId(it.id);
               }}
               onDragLeave={() => {
@@ -810,6 +841,7 @@ function MenuSection(props: {
               }}
               onDrop={(e) => {
                 e.preventDefault();
+                e.stopPropagation(); // 🚀 FIX: Drop exacto, evita que se ponga al final de la lista
                 props.onItemDrop(it.id);
               }}
             >
@@ -873,11 +905,15 @@ function SupplementBox(props: {
   onEdit: () => void;
   onEditItem: (id: string) => void;
 
+  onSectionDragStart: () => void;
+  onSectionDragEnd: () => void;
+  onSectionDragOver: () => void;
+  onSectionDrop: () => void;
+
   drag: DragState;
   dropSuppItemId: string | null;
   setDropSuppItemId: (v: string | null) => void;
   onSuppItemDragStart: (itemId: string) => void;
-  onSuppDragOver: () => void;
   onSuppDropEnd: () => void;
   onSuppItemDrop: (targetId: string) => void;
 }) {
@@ -887,16 +923,36 @@ function SupplementBox(props: {
     <section
       className={`suppBox ${props.isDrop ? "is-drop" : ""}`}
       onDragOver={(e) => {
-        if (props.drag?.kind !== "suppItem") return;
-        e.preventDefault();
-        props.onSuppDragOver();
+        if (props.drag?.kind === "section") {
+          e.preventDefault();
+          props.onSectionDragOver();
+        }
+        if (props.drag?.kind === "suppItem") {
+          e.preventDefault();
+        }
       }}
       onDrop={(e) => {
         e.preventDefault();
+        if (props.drag?.kind === "section") props.onSectionDrop();
         if (props.drag?.kind === "suppItem") props.onSuppDropEnd();
       }}
     >
       <div className="suppBox__head">
+        <span
+          className="dragHandle"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            props.onSectionDragStart();
+          }}
+          onDragEnd={props.onSectionDragEnd}
+          title="Arrossega per reordenar suplements"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          style={{ marginRight: "10px" }}
+        >
+          ⠿
+        </span>
         <div className="suppBox__title">{heading}</div>
         <div className="suppBox__btns">
           <button className="iconBtn" type="button" onClick={props.onAdd} title="Afegir suplement">
@@ -919,6 +975,7 @@ function SupplementBox(props: {
               onDragOver={(e) => {
                 if (props.drag?.kind !== "suppItem") return;
                 e.preventDefault();
+                e.stopPropagation(); // 🚀 FIX: Burbujeo de eventos arreglado
                 props.setDropSuppItemId(it.id);
               }}
               onDragLeave={() => {
@@ -926,6 +983,7 @@ function SupplementBox(props: {
               }}
               onDrop={(e) => {
                 e.preventDefault();
+                e.stopPropagation(); // 🚀 FIX: Drop en el índice exacto
                 props.onSuppItemDrop(it.id);
               }}
             >
@@ -1032,7 +1090,7 @@ function Dialog(props: { title: string; onClose: () => void; children: React.Rea
 }
 
 /* =========================
-   Forms (igual que antes)
+   Forms 
 ========================= */
 
 function DeptForm(props: {

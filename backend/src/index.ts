@@ -130,7 +130,48 @@ app.get("/menu", async (_req, res) => {
   });
 });
 
+// Endpoint para obtener las sugerencias activas actuales (¡NUEVO!)
+app.get("/suggestions/current", async (_req, res) => {
+  try {
+    // 1. Buscamos la hoja activa actual
+    const now = new Date();
+    const sheet = await prisma.suggestionSheet.findFirst({
+      where: {
+        isActive: true,
+        dateFrom: { lte: now },
+        dateTo: { gte: now },
+      },
+      orderBy: { dateFrom: "desc" },
+    });
 
+    if (!sheet) {
+      return res.json({ sheet: null });
+    }
+
+    // 2. Buscamos sus items ordenados
+    const items = await prisma.suggestionItem.findMany({
+      where: { sheetId: sheet.id },
+      orderBy: { order: "asc" },
+    });
+
+    // 3. Agrupamos por sección
+    const food = items.filter((x: any) => x.section === "FOOD");
+    const desserts = items.filter((x: any) => x.section === "DESSERT");
+    const other = items.filter((x: any) => x.section === "OTHER");
+
+    res.json({
+      sheet: {
+        id: sheet.id,
+        dateFrom: sheet.dateFrom,
+        dateTo: sheet.dateTo,
+        sections: { food, desserts, other },
+      },
+    });
+  } catch (e) {
+    console.error("Error fetching public suggestions:", e);
+    res.status(500).json({ error: "server_error" });
+  }
+});
 // ==========================================
 // 4. ADMINISTRACIÓN: DEPARTAMENTOS Y PLATOS
 // ==========================================

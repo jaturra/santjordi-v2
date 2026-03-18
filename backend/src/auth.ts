@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 
-// Forzamos a que el tipo de SECRET sea estrictamente 'string' usando 'as string'
-const SECRET = (process.env.JWT_SECRET || "super_secreto_desarrollo_123") as string;
+// Definimos explícitamente que esto es un string y NUNCA undefined
+const SECRET: string = process.env.JWT_SECRET || "super_secreto_desarrollo_123";
 
 export function signAdminToken(payload: { username: string }) {
+  // Aseguramos a TS que SECRET es un string
   return jwt.sign(payload, SECRET, { expiresIn: "1d" });
 }
 
@@ -18,8 +19,8 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const token = authHeader.split(" ")[1];
 
   try {
-    // Al haber forzado SECRET como string arriba, verify ya no se quejará
-    const decoded = jwt.verify(token, SECRET);
+    // Usamos el operador "!" para decirle a TS: "Confía en mí, no es undefined"
+    const decoded = jwt.verify(token, SECRET!);
     (req as any).user = decoded;
     next();
   } catch (err: any) {

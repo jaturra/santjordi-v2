@@ -293,7 +293,7 @@ export const deleteSuggestionItem = (id: string) =>
   request<{ ok: true }>(`/admin/suggestions/items/${id}`, { method: "DELETE" });
 
 export const reorderSuggestionItems = (sheetId: string, section: SuggestionSection, ids: string[]) =>
-  request<{ ok: true }>(`/admin/suggestions/reorder/${sheetId}/${section}`, {
+  request<{ ok: true }>(`/admin/reorder/suggestions/${sheetId}/${section}`, {
     method: "POST",
     body: JSON.stringify({ ids }),
   });

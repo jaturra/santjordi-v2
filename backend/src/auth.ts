@@ -20,8 +20,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
   try {
     // Si el token es válido y no ha caducado, verify funciona.
-    const decoded = jwt.verify(token, SECRET);
-    (req as any).user = decoded;
+    const decoded = jwt.verify(token, SECRET as string);    (req as any).user = decoded;
     next();
   } catch (err: any) {
     // Si falla (está mal firmado, o han pasado más de 24h), da error 401

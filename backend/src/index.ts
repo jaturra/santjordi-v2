@@ -186,7 +186,7 @@ app.post("/admin/departments", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { title, order } = req.body ?? {};
   await prisma.department.update({
     where: { id },
@@ -196,7 +196,7 @@ app.patch("/admin/departments/:id", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/departments/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.department.delete({ where: { id } });
   res.json({ ok: true });
 });
@@ -229,7 +229,7 @@ app.post("/admin/items", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { departmentId, title, price, allergens, order } = req.body ?? {};
 
   const data: any = { departmentId, title, price, order };
@@ -249,13 +249,13 @@ app.patch("/admin/items/:id", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.item.delete({ where: { id } });
   res.json({ ok: true });
 });
 
 app.post("/admin/reorder/items/:departmentId", requireAdmin, async (req, res) => {
-  const { departmentId } = req.params;
+  const departmentId = req.params.departmentId as string;
   const { ids } = req.body ?? {};
   if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
 
@@ -280,7 +280,7 @@ app.post("/admin/supplement-groups", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { title, order } = req.body ?? {};
   await prisma.supplementGroup.update({
     where: { id },
@@ -290,7 +290,7 @@ app.patch("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/supplement-groups/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.supplementGroup.delete({ where: { id } });
   res.json({ ok: true });
 });
@@ -310,7 +310,7 @@ app.post("/admin/supplement-items", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { groupId, title, price, allergens, order } = req.body ?? {};
   const data: any = { groupId, title, price, order };
   
@@ -325,13 +325,13 @@ app.patch("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/supplement-items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.supplementItem.delete({ where: { id } });
   res.json({ ok: true });
 });
 
 app.post("/admin/reorder/supplement-items/:groupId", requireAdmin, async (req, res) => {
-  const { groupId } = req.params;
+  const groupId = req.params.groupId as string;
   const { ids } = req.body ?? {};
   if (!Array.isArray(ids)) return res.status(400).json({ error: "ids_invalid" });
 
@@ -353,7 +353,7 @@ app.post("/admin/allergens", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/allergens/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.allergen.delete({ where: { id } });
   res.json({ ok: true });
 });
@@ -400,7 +400,7 @@ app.post("/admin/suggestions/sheets", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/suggestions/sheets/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { dateFrom, dateTo } = req.body ?? {};
   await prisma.suggestionSheet.update({
     where: { id },
@@ -427,7 +427,7 @@ app.post("/admin/suggestions/items", requireAdmin, async (req, res) => {
 });
 
 app.patch("/admin/suggestions/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { title, price } = req.body ?? {};
   await prisma.suggestionItem.update({
     where: { id },
@@ -440,13 +440,13 @@ app.patch("/admin/suggestions/items/:id", requireAdmin, async (req, res) => {
 });
 
 app.delete("/admin/suggestions/items/:id", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   await prisma.suggestionItem.delete({ where: { id } });
   res.json({ ok: true });
 });
 
 app.post("/admin/reorder/suggestions/:sheetId/:section", requireAdmin, async (req, res) => {
-  const { section } = req.params;
+  const section = req.params.section as string;
   
   // EL TRUCO MAGISTRAL: Acepta tanto si el frontend envía { ids: [...] } como si envía directamente [...]
   const ids = Array.isArray(req.body) ? req.body : req.body?.ids;

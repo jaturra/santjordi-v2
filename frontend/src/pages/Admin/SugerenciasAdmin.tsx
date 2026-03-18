@@ -408,7 +408,16 @@ function SectionBlock(props: {
   );
 }
 
-function secIds(sec: Section, from: Section, to: Section, fromIds: string[], toIds: string[], originalIds: string[], build: (sec: Section, ids: string[]) => Item[]) {
+// Helper para construir las nuevas secciones tras un movimiento o reordenación
+function secIds(
+  sec: Section,
+  from: Section,
+  to: Section,
+  fromIds: string[],
+  toIds: string[],
+  originalIds: string[],
+  build: (sec: Section, ids: string[]) => Item[]
+) {
   if (sec === to) return build(sec, toIds);
   if (sec === from) return build(sec, fromIds);
   return build(sec, originalIds);

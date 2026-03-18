@@ -56,12 +56,12 @@ export default function Sugerencias() {
   const [loading, setLoading] = useState(true);
   const [sheet, setSheet] = useState<api.AdminSuggestionsCurrent["sheet"]>(null);
 
-  useEffect(() => {
+useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        // Obtenemos los datos tal cual están en el backend
-        const data = await api.getAdminSuggestionsCurrent(); 
+        // Obtenemos los datos PÚBLICOS (sin token)
+        const data = await api.getPublicSuggestionsCurrent(); // <-- CAMBIAR AQUÍ
         setSheet(data.sheet);
       } catch (e: any) {
         alert(e?.message ?? "Error carregant suggerències");

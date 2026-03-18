@@ -117,6 +117,22 @@ export const logoutAdmin = () => {
 ========================= */
 export const getMenu = () => request<MenuPayload>("/menu");
 
+
+
+/* =========================
+   Public - Sugerencias
+========================= */
+export async function getPublicSuggestionsCurrent() {
+  // Petición a la ruta que NO tiene /admin/ en el backend
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/suggestions/current`);
+  
+  if (!res.ok) {
+    throw new Error("Error obteniendo suggerències públiques");
+  }
+  return res.json();
+}
+
+
 /* =========================
    Departments
 ========================= */

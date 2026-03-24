@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
 import * as api from "../../api/sjApi";
 import { Link } from "react-router-dom";
+import AdminMenu from "./AdminMenu";
 
 type Lang = "ca" | "es";
 type LangText = api.LangText;
@@ -369,7 +370,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="sj-admin">
+<div className="sj-admin">
       <div className="sj-admin__paper">
         <header className="sj-admin__top">
           <Link to="/admin" className="sj-admin__brandLink" aria-label="Tornar a l'inici">
@@ -378,6 +379,16 @@ export default function Admin() {
               <div className="sj-admin__brandSub">Admin Carta</div>
             </div>
           </Link>
+          
+          {/* 👇 AQUÍ AÑADIMOS EL MENÚ DE NAVEGACIÓN 👇 */}
+          <div className="sj-admin__actions">
+            <AdminMenu />
+          </div>
+
+
+
+
+
 
           <div className="sj-admin__actions">
             <div className="seg">

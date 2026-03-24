@@ -22,7 +22,7 @@ async function onSubmit(e: React.FormEvent) {
       localStorage.setItem("admin", "true");
       
       // 3. Navegamos a la página protegida
-      nav("/admin/carta");
+      nav("/admin/HomeAdmin");
       
     } catch (err: any) {
       alert(err?.message ?? "Login error");

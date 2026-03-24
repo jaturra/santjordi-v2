@@ -6,7 +6,7 @@ export default function AdminMenu() {
     isActive ? "btn btn--primary" : "btn btn--ghost";
 
   return (
-    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", width: "100%" }}>
       <NavLink to="/admin" end className={getNavClass}>
         🏠 Inici
       </NavLink>
@@ -19,6 +19,17 @@ export default function AdminMenu() {
       <NavLink to="/admin/bebidas" className={getNavClass}>
         🍷 Begudes
       </NavLink>
+
+      {/* 👇 ENLACE NUEVO: Botón para ver la web pública en otra pestaña */}
+      <a 
+        href="/" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="btn btn--ghost" 
+        style={{ marginLeft: "auto", border: "1px solid rgba(27, 43, 74, 0.2)" }}
+      >
+        👁️ Veure Web
+      </a>
     </div>
   );
 }

@@ -6,10 +6,18 @@ datasource db {
   provider = "postgresql"
 }
 
+// 👇 NUEVO: Definimos los tipos de departamento
+enum DepartmentType {
+  FOOD
+  DRINK
+}
+
 model Department {
-  id    String @id @default(uuid())
+  id    String         @id @default(uuid())
   title Json
-  order Int    @default(0)
+  order Int            @default(0)
+  // 👇 NUEVO: Columna para diferenciar Carta de Bebidas
+  type  DepartmentType @default(FOOD)
 
   items Item[]
 }
@@ -33,7 +41,7 @@ model Allergen {
   code  String @unique
   label Json
 
-  items           ItemAllergen[]
+  items            ItemAllergen[]
   supplementItems SupplementItemAllergen[]
 }
 
@@ -97,14 +105,14 @@ model SuggestionSheet {
 }
 
 model SuggestionItem {
-  id      String           @id @default(uuid())
+  id      String            @id @default(uuid())
   sheetId String
-  sheet   SuggestionSheet  @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  sheet   SuggestionSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
 
   section SuggestionSection
   title   Json
-  price   Decimal          @db.Decimal(10, 2)
-  order   Int              @default(0)
+  price   Decimal           @db.Decimal(10, 2)
+  order   Int               @default(0)
 
   @@index([sheetId])
   @@index([sheetId, section, order])

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import "./Admin.css";
 import * as api from "../../api/sjApi";
 import { Link } from "react-router-dom";
-import AdminMenu from "./AdminMenu";
 
 type Lang = "ca" | "es";
 type LangText = api.LangText;

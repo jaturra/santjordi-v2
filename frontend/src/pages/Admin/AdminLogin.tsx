@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../../api/sjApi";
+import AdminMenu from "./AdminMenu";
 
 export default function AdminLogin() {
   const nav = useNavigate();

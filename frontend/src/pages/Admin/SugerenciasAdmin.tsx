@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "../Admin/Admin.css";
 import * as api from "../../api/sjApi";
 import { Link } from "react-router-dom";
+import AdminMenu from "./AdminMenu";
 
 type LangText = api.LangText;
 type Section = api.SuggestionSection;
@@ -200,13 +201,16 @@ export default function SugerenciasAdmin() {
     <div className="sj-admin">
       <div className="sj-admin__paper">
         <header className="sj-admin__top">
-          <Link to="/" className="sj-admin__brandLink" aria-label="Tornar a l'inici">
+          <Link to="/admin" className="sj-admin__brandLink" aria-label="Tornar a l'inici">
             <div className="sj-admin__brand">
               <div className="sj-admin__brandName">BAR SANT JORDI</div>
               <div className="sj-admin__brandSub">Admin Suggeriments</div>
             </div>
           </Link>
-          <div className="sj-admin__actions"></div>
+          <div className="sj-admin__actions">
+            {/* 👇 AQUÍ INSERTAMOS EL MENÚ 👇 */}
+            <AdminMenu />
+          </div>
         </header>
 
         <div className="sj-admin__rule" />

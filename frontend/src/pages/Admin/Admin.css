@@ -632,72 +632,87 @@
 }
 
 /* =========================================
-   ESTILOS EXCLUSIVOS PARA LA IMPRESORA
-========================================= */
+   ESTILOS EXCLUSIVOS PARA LA IMPRESORA (Phase 1: Single Copy)
+   ========================================= */
 .print-wrapper {
   display: none; /* Oculto en la pantalla normal */
 }
 
 @media print {
-  /* Forzamos el folio A4 en horizontal (landscape) */
+  /* Forzamos el folio A4 en VERTICAL para Phase 1 */
   @page {
-    size: A4 landscape;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 15mm;
   }
 
-  /* Ocultamos TODO el panel de administración */
-  .sj-admin__top, 
-  .sj-admin__rule, 
-  .sj-admin__grid, 
-  .dlg__backdrop, 
-  .dlg {
-    display: none !important;
+  /* 🚫 OCULTAMOS ABSOLUTAMENTE TODO EL PANEL DE ADMINISTRACIÓN 🚫 */
+  body * {
+    visibility: hidden;
   }
-
-  /* Mostramos solo nuestro contenedor preparado para imprimir */
+  
+  /* ✅ MOSTRAMOS SOLO NUESTRA PLANTILLA ELEGANTE ✅ */
+  .print-wrapper, .print-wrapper * {
+    visibility: visible;
+  }
   .print-wrapper {
-    display: flex !important;
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
+    display: block !important;
+    position: absolute;
+    top: 0; left: 0; width: 100%;
     color: black;
-    font-family: sans-serif;
+    font-family: 'Times New Roman', serif; /* O sans-serif si prefieres */
+    padding: 20px;
+    background-color: white !important;
   }
 
-  /* Cada mitad del folio */
-  .print-half {
-    flex: 1;
-    padding: 0 30px;
-    /* La línea de puntos central para cortar */
-    border-right: 1px dashed #ccc; 
-  }
-  .print-half:last-child {
-    border-right: none;
-  }
-
-  /* Estilos del texto impreso */
-  .print-title {
+  /* --- CABECERA (Fecha subrayada como en la foto) --- */
+  .print-header {
     text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    text-transform: uppercase;
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 25px;
+    text-decoration: underline;
   }
-  .print-section {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 20px;
-    border-bottom: 2px solid black;
-    padding-bottom: 4px;
-    text-transform: uppercase;
-  }
+
+  /* --- PLATO (Nombre y precio alineados) --- */
   .print-item {
     display: flex;
     justify-content: space-between;
-    margin-top: 8px;
-    font-size: 15px;
+    align-items: baseline;
+    margin-top: 10px;
+    font-size: 16px;
+    gap: 10px;
   }
-  .print-item-name {
-    font-weight: 500;
+  .print-item-dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(0,0,0,0.1); /* Puntos sutiles */
+    height: 1px;
+  }
+  .print-price {
+    font-weight: bold;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* --- SEPARADOR (Línea central) --- */
+  .print-separator {
+    border: none;
+    border-top: 2px solid #333;
+    width: 60%;
+    margin: 30px auto;
+  }
+
+  /* --- ELEMENTOS CENTRADOS (Mojito, Vino, Terraza) --- */
+  .print-item-centered {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  .print-footer {
+    font-weight: normal;
+    text-transform: none;
+    margin-top: 25px;
+    font-size: 14px;
   }
 }

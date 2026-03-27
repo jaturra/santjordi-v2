@@ -693,7 +693,7 @@
     text-decoration: underline;
     margin-bottom: 18px;
     /* 👇 AJUSTA EL COLOR AQUÍ (Hexadecimal). He puesto un azul suave/pastel */
-    color: #528bc0 !important; 
+    color: #23c1ff !important; 
   }
 
   /* --- PLATOS Y POSTRES --- */
@@ -718,7 +718,7 @@
   .print-price {
     font-weight: bold;
     /* 👇 MISMO AZUL SUAVE PARA LOS PRECIOS */
-    color: #528bc0 !important; 
+    color: #23c1ff !important; 
   }
 
   /* --- LÍNEA SEPARADORA --- */
@@ -744,6 +744,6 @@
     /* 👇 ESPACIO ENTRE LAS LÍNEAS DE 'ALTRES' */
     margin-top: 10px;
     /* 👇 MISMO AZUL SUAVE */
-    color: #528bc0 !important; 
+    color: #23c1ff !important; 
   }
 }

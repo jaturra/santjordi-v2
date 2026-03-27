@@ -208,14 +208,13 @@ export default function SugerenciasAdmin() {
             </div>
           </Link>
           <div className="sj-admin__actions">
-            {/* 👇 AQUÍ INSERTAMOS EL MENÚ 👇 */}
             <AdminMenu />
           </div>
         </header>
 
         <div className="sj-admin__rule" />
 
-{loading ? (
+        {loading ? (
           <div style={{ padding: 16, opacity: 0.7 }}>Carregant…</div>
         ) : (
           <div className="sj-admin__grid sj-admin__grid--stack">
@@ -236,7 +235,6 @@ export default function SugerenciasAdmin() {
                   Crear primera fulla
                 </button>
               ) : (
-                /* 👇 AQUÍ ESTÁ EL TRUCO: Usamos <> para agrupar los dos botones 👇 */
                 <>
                   <button className="btn btn--primary" style={{ marginLeft: "10px" }} type="button" onClick={saveSheetDates}>
                     Guardar dates
@@ -266,8 +264,8 @@ export default function SugerenciasAdmin() {
               </div>
             )}
             
-            {/* 👇 PLANTILLA OCULTA: Mejor ponerla al final del contenedor principal 👇 */}
-            {sheet && <PrintableMenu food={food} desserts={desserts} other={other} />}
+            {/* 👇 PLANTILLA OCULTA ACTUALIZADA (Se le pasan las fechas) 👇 */}
+            {sheet && <PrintableMenu dateFrom={dateFrom} dateTo={dateTo} food={food} desserts={desserts} other={other} />}
             
           </div>
         )}
@@ -443,53 +441,70 @@ function secIds(
   return build(sec, originalIds);
 }
 
+// =======================================================
+// NUEVAS FUNCIONES PARA LA IMPRESIÓN (Catalán / Castellano)
+// =======================================================
 
+// Función para la fecha: Traduce según la columna
+const formatDateSpan = (fromStr: string | null, toStr: string | null, lang: 'ca' | 'es') => {
+  if (!fromStr || !toStr) return lang === 'ca' ? "Especialitats" : "Especialidades";
+  const dateFrom = new Date(fromStr);
+  const dateTo = new Date(toStr);
+  
+  const monthsCa = ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
+  const monthsEs = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  
+  if (lang === 'ca') {
+    return `Especialitats del ${dateFrom.getDate()} al ${dateTo.getDate()} de ${monthsCa[dateTo.getMonth()]}`;
+  } else {
+    return `Especialidades del ${dateFrom.getDate()} al ${dateTo.getDate()} de ${monthsEs[dateTo.getMonth()]}`;
+  }
+};
 
-function PrintableMenu({ food, desserts, other }: { food: Item[], desserts: Item[], other: Item[] }) {
-  // Array de dos elementos para imprimir la misma lista a la izquierda y a la derecha
-  const columns = [1, 2];
+// La plantilla que imprime en 2 idiomas
+function PrintableMenu({ dateFrom, dateTo, food, desserts, other }: { dateFrom: string | null, dateTo: string | null, food: Item[], desserts: Item[], other: Item[] }) {
+  // Columna 1 = Catalán, Columna 2 = Castellano
+  const columns = [
+    { id: 1, lang: 'ca' as const },
+    { id: 2, lang: 'es' as const }
+  ];
 
   return (
     <div className="print-wrapper">
-      {columns.map((col) => (
-        <div key={col} className="print-half">
-          <div className="print-title">Suggeriments</div>
+      {columns.map(({ id, lang }) => (
+        <div key={id} className="print-half">
+          <div className="print-header">{formatDateSpan(dateFrom, dateTo, lang)}</div>
 
-          {food.length > 0 && (
-            <>
-              <div className="print-section">Tapes i Plats</div>
-              {food.map((it) => (
-                <div key={`food-${col}-${it.id}`} className="print-item">
-                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
-                  <span>{fmtEUR(it.price)}</span>
-                </div>
-              ))}
-            </>
-          )}
+          {/* TAPAS Y PLATOS */}
+          {food.map((it) => (
+            <div key={`f-${id}-${it.id}`} className="print-item">
+              <span>- {it.title[lang] || it.title.ca}</span>
+              <span className="print-item-dots" />
+              <span className="print-price">{fmtEUR(it.price)}</span>
+            </div>
+          ))}
 
-          {desserts.length > 0 && (
-            <>
-              <div className="print-section">Postres</div>
-              {desserts.map((it) => (
-                <div key={`dessert-${col}-${it.id}`} className="print-item">
-                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
-                  <span>{fmtEUR(it.price)}</span>
-                </div>
-              ))}
-            </>
-          )}
+          {/* BARRA SEPARADORA (Solo si hay postres) */}
+          {desserts.length > 0 && <hr className="print-separator" />}
 
-          {other.length > 0 && (
-            <>
-              <div className="print-section">Altres</div>
-              {other.map((it) => (
-                <div key={`other-${col}-${it.id}`} className="print-item">
-                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
-                  <span>{fmtEUR(it.price)}</span>
-                </div>
-              ))}
-            </>
-          )}
+          {/* POSTRES */}
+          {desserts.map((it) => (
+            <div key={`d-${id}-${it.id}`} className="print-item">
+              <span>- {it.title[lang] || it.title.ca}</span>
+              <span className="print-item-dots" />
+              <span className="print-price">{fmtEUR(it.price)}</span>
+            </div>
+          ))}
+
+          {/* ALTRES (Centrados como en la foto) */}
+          <div className="print-altres-container">
+            {other.map((it) => (
+              <div key={`o-${id}-${it.id}`} className="print-item-centered">
+                {it.title[lang] || it.title.ca} {fmtEUR(it.price)}
+              </div>
+            ))}
+          </div>
+          
         </div>
       ))}
     </div>

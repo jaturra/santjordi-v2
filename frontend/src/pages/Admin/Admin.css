@@ -693,7 +693,7 @@
     text-decoration: underline;
     margin-bottom: 18px;
     /* 👇 AJUSTA EL COLOR AQUÍ (Hexadecimal). He puesto un azul suave/pastel */
-    color: #7A9EBF !important; 
+    color: #3981c5 !important; 
   }
 
   /* --- PLATOS Y POSTRES --- */
@@ -704,7 +704,7 @@
     /* 👇 AJUSTA ESTE MARGEN PARA JUNTAR O SEPARAR LOS PLATOS VERTICALMENTE */
     margin-top: 8px; 
     /* 👇 AJUSTA EL TAMAÑO DE LA LETRA DE LOS PLATOS AQUÍ */
-    font-size: 18px; 
+    font-size: 20px; 
     font-weight: bold;
   }
   
@@ -718,7 +718,7 @@
   .print-price {
     font-weight: bold;
     /* 👇 MISMO AZUL SUAVE PARA LOS PRECIOS */
-    color: #7A9EBF !important; 
+   color: #3981c5 !important; 
   }
 
   /* --- LÍNEA SEPARADORA --- */
@@ -740,10 +740,10 @@
     text-align: center;
     font-weight: bold; 
     /* 👇 TAMAÑO DE LA LETRA DE 'ALTRES' (MOJITO, TERRAZA...) */
-    font-size: 18px; 
+    font-size: 20px; 
     /* 👇 ESPACIO ENTRE LAS LÍNEAS DE 'ALTRES' */
     margin-top: 10px;
     /* 👇 MISMO AZUL SUAVE */
-    color: #7A9EBF !important; 
+    color: #3981c5 !important; 
   }
 }

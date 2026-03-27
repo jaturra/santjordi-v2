@@ -653,7 +653,7 @@
     visibility: visible;
   }
   
-  /* Bloqueamos a 1 sola página */
+  /* Bloqueamos a 1 sola página y ajustamos márgenes */
   .print-wrapper {
     position: absolute;
     top: 0; left: 0;
@@ -666,12 +666,13 @@
     font-family: Arial, sans-serif;
     color: black;
     box-sizing: border-box;
-    padding: 15mm 20mm;
+    /* Reducimos el margen interno un poco para que quepan más platos */
+    padding: 10mm 15mm; 
   }
 
   .print-half {
     flex: 1;
-    padding: 0 40px;
+    padding: 0 30px; /* Un poco menos de espacio entre las dos columnas */
     display: flex;
     flex-direction: column;
   }
@@ -683,11 +684,11 @@
 
   /* --- CABECERA (FECHAS) --- */
   .print-header {
-    font-size: 24px; /* Letra más grande */
-    font-weight: bold; /* Negrita */
+    font-size: 21px; /* Letra un pelín más ajustada */
+    font-weight: bold;
     text-decoration: underline;
-    margin-bottom: 25px;
-    color: #007bff !important; /* Color azul */
+    margin-bottom: 18px;
+    color: #5A9BD5 !important; /* Azul más suave y elegante */
   }
 
   /* --- PLATOS Y POSTRES --- */
@@ -695,20 +696,20 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-top: 12px;
-    font-size: 19px; /* Letra más grande */
-    font-weight: bold; /* Todo en negrita */
+    margin-top: 8px; /* Menos espacio entre líneas para que quepa todo */
+    font-size: 17px; /* Letra un poco más pequeña pero en negrita */
+    font-weight: bold;
   }
   .print-item-dots {
     flex: 1;
-    border-bottom: 2px dotted rgba(0,0,0,0.3); /* Puntos un poco más gruesos para que destaquen */
+    border-bottom: 2px dotted rgba(0,0,0,0.3);
     margin: 0 10px;
   }
   
   /* --- PRECIOS --- */
   .print-price {
     font-weight: bold;
-    color: #007bff !important; /* Color azul */
+    color: #5A9BD5 !important; /* Azul más suave */
   }
 
   /* --- LÍNEA SEPARADORA --- */
@@ -716,18 +717,18 @@
     border: none;
     border-top: 2px solid #333;
     width: 40%;
-    margin: 25px 0;
+    margin: 15px 0; /* Menos margen */
   }
 
   /* --- SECCIÓN ALTRES --- */
   .print-altres-container {
-    margin-top: 35px;
+    margin-top: 20px; /* Menos margen superior */
   }
   .print-item-centered {
     text-align: center;
-    font-weight: bold; /* Negrita */
-    font-size: 19px; /* Letra más grande */
-    margin-top: 14px;
-    color: #007bff !important; /* Color azul */
+    font-weight: bold; 
+    font-size: 17px; 
+    margin-top: 10px;
+    color: #5A9BD5 !important; /* Azul más suave */
   }
 }

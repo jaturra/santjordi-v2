@@ -642,31 +642,31 @@
   /* Forzamos A4 Horizontal y quitamos márgenes para borrar las URLs del navegador */
   @page {
     size: A4 landscape;
-    margin: 0mm; 
+    margin: 0; 
   }
 
-  /* Ocultamos todo el panel de administración */
   body * {
     visibility: hidden;
   }
   
-  /* Mostramos la carta y la colocamos en la esquina superior */
   .print-wrapper, .print-wrapper * {
     visibility: visible;
   }
   
+  /* Bloqueamos a 1 sola página para que no salgan folios en blanco */
   .print-wrapper {
     position: absolute;
     top: 0; left: 0;
-    width: 100vw; 
-    height: 100vh;
+    width: 100%; 
+    height: 100%;
+    overflow: hidden;
     display: flex !important;
     flex-direction: row;
     background-color: white;
-    font-family: sans-serif;
+    font-family: Arial, sans-serif;
     color: black;
     box-sizing: border-box;
-    padding: 20mm; /* Damos el margen interno aquí */
+    padding: 15mm 20mm; /* Margen interno del folio */
   }
 
   /* Dividimos en 2 mitades idénticas */
@@ -679,16 +679,18 @@
   
   /* Línea central para cortar con tijeras */
   .print-half:first-child {
-    border-right: 1px dashed #ccc;
+    border-right: 1px dashed #999;
   }
 
-  /* Estilo del texto como en la foto */
+  /* Título de la fecha */
   .print-header {
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: bold;
     text-decoration: underline;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
   }
+
+  /* Platos y postres (con guión y puntos) */
   .print-item {
     display: flex;
     justify-content: space-between;
@@ -698,25 +700,29 @@
   }
   .print-item-dots {
     flex: 1;
-    border-bottom: 1px dotted rgba(0,0,0,0.3);
+    border-bottom: 1px dotted rgba(0,0,0,0.2);
     margin: 0 8px;
   }
   .print-price {
     font-weight: bold;
-    min-width: 45px;
-    text-align: right;
   }
+
+  /* La línea separadora entre tapas y postres */
   .print-separator {
     border: none;
-    border-top: 2px solid #333;
-    width: 60%;
-    margin: 25px 0;
+    border-top: 1px solid #333;
+    width: 40%;
+    margin: 20px 0;
+  }
+
+  /* Sección Altres (Mojito, terraza...) centrada */
+  .print-altres-container {
+    margin-top: 30px; /* Separación con lo de arriba */
   }
   .print-item-centered {
     text-align: center;
     font-weight: bold;
-    text-transform: uppercase;
-    font-size: 15px;
-    margin-top: 10px;
+    font-size: 16px;
+    margin-top: 12px;
   }
 }

@@ -639,7 +639,7 @@
 }
 
 @media print {
-  /* Forzamos A4 Horizontal y quitamos márgenes para borrar las URLs del navegador */
+  /* Forzamos A4 Horizontal y quitamos márgenes */
   @page {
     size: A4 landscape;
     margin: 0; 
@@ -653,7 +653,7 @@
     visibility: visible;
   }
   
-  /* Bloqueamos a 1 sola página para que no salgan folios en blanco */
+  /* Bloqueamos a 1 sola página */
   .print-wrapper {
     position: absolute;
     top: 0; left: 0;
@@ -666,10 +666,9 @@
     font-family: Arial, sans-serif;
     color: black;
     box-sizing: border-box;
-    padding: 15mm 20mm; /* Margen interno del folio */
+    padding: 15mm 20mm;
   }
 
-  /* Dividimos en 2 mitades idénticas */
   .print-half {
     flex: 1;
     padding: 0 40px;
@@ -677,52 +676,58 @@
     flex-direction: column;
   }
   
-  /* Línea central para cortar con tijeras */
+  /* Línea central para cortar */
   .print-half:first-child {
     border-right: 1px dashed #999;
   }
 
-  /* Título de la fecha */
+  /* --- CABECERA (FECHAS) --- */
   .print-header {
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 24px; /* Letra más grande */
+    font-weight: bold; /* Negrita */
     text-decoration: underline;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    color: #007bff !important; /* Color azul */
   }
 
-  /* Platos y postres (con guión y puntos) */
+  /* --- PLATOS Y POSTRES --- */
   .print-item {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-top: 10px;
-    font-size: 16px;
+    margin-top: 12px;
+    font-size: 19px; /* Letra más grande */
+    font-weight: bold; /* Todo en negrita */
   }
   .print-item-dots {
     flex: 1;
-    border-bottom: 1px dotted rgba(0,0,0,0.2);
-    margin: 0 8px;
+    border-bottom: 2px dotted rgba(0,0,0,0.3); /* Puntos un poco más gruesos para que destaquen */
+    margin: 0 10px;
   }
+  
+  /* --- PRECIOS --- */
   .print-price {
     font-weight: bold;
+    color: #007bff !important; /* Color azul */
   }
 
-  /* La línea separadora entre tapas y postres */
+  /* --- LÍNEA SEPARADORA --- */
   .print-separator {
     border: none;
-    border-top: 1px solid #333;
+    border-top: 2px solid #333;
     width: 40%;
-    margin: 20px 0;
+    margin: 25px 0;
   }
 
-  /* Sección Altres (Mojito, terraza...) centrada */
+  /* --- SECCIÓN ALTRES --- */
   .print-altres-container {
-    margin-top: 30px; /* Separación con lo de arriba */
+    margin-top: 35px;
   }
   .print-item-centered {
     text-align: center;
-    font-weight: bold;
-    font-size: 16px;
-    margin-top: 12px;
+    font-weight: bold; /* Negrita */
+    font-size: 19px; /* Letra más grande */
+    margin-top: 14px;
+    color: #007bff !important; /* Color azul */
   }
 }

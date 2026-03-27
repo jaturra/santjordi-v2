@@ -215,7 +215,7 @@ export default function SugerenciasAdmin() {
 
         <div className="sj-admin__rule" />
 
-        {loading ? (
+{loading ? (
           <div style={{ padding: 16, opacity: 0.7 }}>Carregant…</div>
         ) : (
           <div className="sj-admin__grid sj-admin__grid--stack">
@@ -236,9 +236,21 @@ export default function SugerenciasAdmin() {
                   Crear primera fulla
                 </button>
               ) : (
-                <button className="btn btn--primary" style={{ marginLeft: "10px" }} type="button" onClick={saveSheetDates}>
-                  Guardar dates
-                </button>
+                /* 👇 AQUÍ ESTÁ EL TRUCO: Usamos <> para agrupar los dos botones 👇 */
+                <>
+                  <button className="btn btn--primary" style={{ marginLeft: "10px" }} type="button" onClick={saveSheetDates}>
+                    Guardar dates
+                  </button>
+                  
+                  <button 
+                    className="btn btn--primary" 
+                    style={{ marginLeft: "10px", backgroundColor: "#2e7d32", borderColor: "#2e7d32" }} 
+                    type="button" 
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Imprimir
+                  </button>
+                </>
               )}
             </div>
 
@@ -253,6 +265,10 @@ export default function SugerenciasAdmin() {
                 <SectionBlock title={{ ca: "Altres", es: "Otros" }} section="OTHER" items={other} drag={drag} drop={drop} onAdd={() => openNewItem("OTHER")} onEdit={openEditItem} onDelete={removeItem} onDragStart={(itemId) => setDrag({ itemId, from: "OTHER" })} onDragEnd={() => { setDrag(null); setDrop(null); }} onDragOver={(beforeId) => setDrop({ section: "OTHER", beforeId })} onDrop={(beforeId) => onDropInto("OTHER", beforeId)} onDropEnd={() => onDropInto("OTHER", undefined)} />
               </div>
             )}
+            
+            {/* 👇 PLANTILLA OCULTA: Mejor ponerla al final del contenedor principal 👇 */}
+            {sheet && <PrintableMenu food={food} desserts={desserts} other={other} />}
+            
           </div>
         )}
       </div>
@@ -425,4 +441,57 @@ function secIds(
   if (sec === to) return build(sec, toIds);
   if (sec === from) return build(sec, fromIds);
   return build(sec, originalIds);
+}
+
+
+
+function PrintableMenu({ food, desserts, other }: { food: Item[], desserts: Item[], other: Item[] }) {
+  // Array de dos elementos para imprimir la misma lista a la izquierda y a la derecha
+  const columns = [1, 2];
+
+  return (
+    <div className="print-wrapper">
+      {columns.map((col) => (
+        <div key={col} className="print-half">
+          <div className="print-title">Suggeriments</div>
+
+          {food.length > 0 && (
+            <>
+              <div className="print-section">Tapes i Plats</div>
+              {food.map((it) => (
+                <div key={`food-${col}-${it.id}`} className="print-item">
+                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
+                  <span>{fmtEUR(it.price)}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {desserts.length > 0 && (
+            <>
+              <div className="print-section">Postres</div>
+              {desserts.map((it) => (
+                <div key={`dessert-${col}-${it.id}`} className="print-item">
+                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
+                  <span>{fmtEUR(it.price)}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {other.length > 0 && (
+            <>
+              <div className="print-section">Altres</div>
+              {other.map((it) => (
+                <div key={`other-${col}-${it.id}`} className="print-item">
+                  <span className="print-item-name">{it.title.ca || it.title.es}</span>
+                  <span>{fmtEUR(it.price)}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }

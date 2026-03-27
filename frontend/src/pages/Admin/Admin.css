@@ -631,3 +631,73 @@
   opacity: 0.85;
 }
 
+/* =========================================
+   ESTILOS EXCLUSIVOS PARA LA IMPRESORA
+========================================= */
+.print-wrapper {
+  display: none; /* Oculto en la pantalla normal */
+}
+
+@media print {
+  /* Forzamos el folio A4 en horizontal (landscape) */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  /* Ocultamos TODO el panel de administración */
+  .sj-admin__top, 
+  .sj-admin__rule, 
+  .sj-admin__grid, 
+  .dlg__backdrop, 
+  .dlg {
+    display: none !important;
+  }
+
+  /* Mostramos solo nuestro contenedor preparado para imprimir */
+  .print-wrapper {
+    display: flex !important;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    color: black;
+    font-family: sans-serif;
+  }
+
+  /* Cada mitad del folio */
+  .print-half {
+    flex: 1;
+    padding: 0 30px;
+    /* La línea de puntos central para cortar */
+    border-right: 1px dashed #ccc; 
+  }
+  .print-half:last-child {
+    border-right: none;
+  }
+
+  /* Estilos del texto impreso */
+  .print-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .print-section {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 20px;
+    border-bottom: 2px solid black;
+    padding-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .print-item {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 15px;
+  }
+  .print-item-name {
+    font-weight: 500;
+  }
+}

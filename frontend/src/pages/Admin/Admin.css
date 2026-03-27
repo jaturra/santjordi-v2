@@ -639,7 +639,7 @@
 }
 
 @media print {
-  /* Forzamos A4 Horizontal y quitamos márgenes */
+  /* Forzamos A4 Horizontal y quitamos márgenes por defecto del navegador */
   @page {
     size: A4 landscape;
     margin: 0; 
@@ -666,13 +666,16 @@
     font-family: Arial, sans-serif;
     color: black;
     box-sizing: border-box;
-    /* Reducimos el margen interno un poco para que quepan más platos */
+    
+    /* 👇 AJUSTA ESTOS MÁRGENES SI NECESITAS MÁS O MENOS ESPACIO EN EL BORDE DEL FOLIO */
+    /* Primer valor (10mm) es Arriba/Abajo. Segundo valor (15mm) es Izquierda/Derecha */
     padding: 10mm 15mm; 
   }
 
   .print-half {
     flex: 1;
-    padding: 0 30px; /* Un poco menos de espacio entre las dos columnas */
+    /* 👇 AJUSTA ESTE NÚMERO PARA ACERCAR O ALEJAR LAS DOS COLUMNAS ENTRE SÍ */
+    padding: 0 30px; 
     display: flex;
     flex-direction: column;
   }
@@ -684,11 +687,13 @@
 
   /* --- CABECERA (FECHAS) --- */
   .print-header {
-    font-size: 21px; /* Letra un pelín más ajustada */
+    /* 👇 AJUSTA EL TAMAÑO DE LA LETRA DE LA FECHA AQUÍ */
+    font-size: 22px; 
     font-weight: bold;
     text-decoration: underline;
     margin-bottom: 18px;
-    color: #5A9BD5 !important; /* Azul más suave y elegante */
+    /* 👇 AJUSTA EL COLOR AQUÍ (Hexadecimal). He puesto un azul suave/pastel */
+    color: #7A9EBF !important; 
   }
 
   /* --- PLATOS Y POSTRES --- */
@@ -696,10 +701,13 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-top: 8px; /* Menos espacio entre líneas para que quepa todo */
-    font-size: 17px; /* Letra un poco más pequeña pero en negrita */
+    /* 👇 AJUSTA ESTE MARGEN PARA JUNTAR O SEPARAR LOS PLATOS VERTICALMENTE */
+    margin-top: 8px; 
+    /* 👇 AJUSTA EL TAMAÑO DE LA LETRA DE LOS PLATOS AQUÍ */
+    font-size: 18px; 
     font-weight: bold;
   }
+  
   .print-item-dots {
     flex: 1;
     border-bottom: 2px dotted rgba(0,0,0,0.3);
@@ -709,7 +717,8 @@
   /* --- PRECIOS --- */
   .print-price {
     font-weight: bold;
-    color: #5A9BD5 !important; /* Azul más suave */
+    /* 👇 MISMO AZUL SUAVE PARA LOS PRECIOS */
+    color: #7A9EBF !important; 
   }
 
   /* --- LÍNEA SEPARADORA --- */
@@ -717,18 +726,24 @@
     border: none;
     border-top: 2px solid #333;
     width: 40%;
-    margin: 15px 0; /* Menos margen */
+    /* 👇 ESPACIO ARRIBA Y ABAJO DE LA LÍNEA QUE SEPARA PLATOS DE POSTRES */
+    margin: 15px 0; 
   }
 
   /* --- SECCIÓN ALTRES --- */
   .print-altres-container {
-    margin-top: 20px; /* Menos margen superior */
+    /* 👇 ESPACIO ENTRE LOS POSTRES Y LA SECCIÓN ALTRES */
+    margin-top: 20px; 
   }
+  
   .print-item-centered {
     text-align: center;
     font-weight: bold; 
-    font-size: 17px; 
+    /* 👇 TAMAÑO DE LA LETRA DE 'ALTRES' (MOJITO, TERRAZA...) */
+    font-size: 18px; 
+    /* 👇 ESPACIO ENTRE LAS LÍNEAS DE 'ALTRES' */
     margin-top: 10px;
-    color: #5A9BD5 !important; /* Azul más suave */
+    /* 👇 MISMO AZUL SUAVE */
+    color: #7A9EBF !important; 
   }
 }

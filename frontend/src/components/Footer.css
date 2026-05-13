@@ -1,0 +1,24 @@
+
+/* --- FOOTER LEGAL --- */
+.home-base__footer {
+  text-align: center;
+  padding: 24px 20px;
+  background: #1b2b4a; /* Fondo azul oscuro para cerrar la página */
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+.home-base__footer p {
+  margin: 0 0 10px 0;
+}
+.home-base__legal {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.home-base__legal a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+}
+.home-base__legal a:hover {
+  color: #d7b45a;
+}

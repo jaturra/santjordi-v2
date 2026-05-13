@@ -21,6 +21,11 @@ import Footer from "./components/Footer";
 
 export default function App() {
   return (
+    // 1. Este div principal envuelve TODO (Routes y Footer)
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      
+      {/* 2. Este div contiene las rutas y empuja al Footer hacia abajo */}
+      <div style={{ flex: 1 }}>
     <Routes>
       {/* Público */}
       <Route path="/" element={<Home />} />
@@ -75,11 +80,16 @@ export default function App() {
           </RequireAdmin>
         }
       />
-      {/* 👇 EL FOOTER FUERA DE <Routes> PARA QUE SE VEA SIEMPRE 👇 */}
-      <Footer />
 
-      {/* Fallback - Si la ruta no existe, vuelve al inicio */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+
+{/* Fallback - Si la ruta no existe, vuelve al inicio */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+
+      {/* 👇 3. EL FOOTER: Fuera de <Routes>, pero DENTRO del div principal 👇 */}
+      <Footer />
+      
+    </div>
   );
 }

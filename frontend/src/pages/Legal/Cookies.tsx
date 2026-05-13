@@ -1,4 +1,4 @@
-// src/pages/Politicas/Cookies.tsx
+// src/pages/Legal/Cookies.tsx
 export default function Cookies() {
   return (
     <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6' }}>

@@ -1,4 +1,4 @@
-// src/pages/Politicas/Privacidad.tsx
+// src/pages/Legal/Privacidad.tsx
 export default function Privacidad() {
   return (
     <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto', lineHeight: '1.6' }}>
@@ -15,7 +15,7 @@ export default function Privacidad() {
 
         <h2>4. LEGITIMACIÓN</h2>
         <p>La base legal para el tratamiento de sus datos es el consentimiento explícito otorgado por el usuario al contactar o al aceptar nuestra política de cookies.</p>
-        
+
         <h2>5. DERECHOS DEL USUARIO</h2>
         <p>Usted tiene derecho a obtener confirmación sobre si en Bar Sant Jordi estamos tratando sus datos personales. Por tanto, tiene derecho a acceder a sus datos personales, rectificar los datos inexactos o solicitar su supresión cuando los datos ya no sean necesarios. Para ello, puede enviar un correo electrónico a [Tu email de contacto del bar] adjuntando una copia de su DNI.</p>
    </div>

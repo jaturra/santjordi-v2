@@ -83,15 +83,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* --- FOOTER LEGAL --- */}
-      <footer className="home-base__footer">
-        <p>© {new Date().getFullYear()} Bar Sant Jordi</p>
-        <div className="home-base__legal">
-          <a href="#" onClick={(e) => e.preventDefault()}>Términos y Condiciones</a>
-          <span>•</span>
-          <a href="#" onClick={(e) => e.preventDefault()}>Política de Privacidad</a>
-        </div>
-      </footer>
+
       
     </div>
   );

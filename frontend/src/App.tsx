@@ -13,6 +13,12 @@ import BebidasAdmin from "./pages/Admin/BebidasAdmin";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import RequireAdmin from "./pages/Admin/RequireAdmin";
 
+import AvisoLegal from './pages/Legal/AvisoLegal';
+import Privacidad from './pages/Legal/Privacidad';
+import Cookies from './pages/Legal/Cookies';
+
+import Footer from "./components/Footer";
+
 export default function App() {
   return (
     <Routes>
@@ -20,6 +26,9 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/carta" element={<Carta />} />
       <Route path="/sugerencias" element={<Sugerencias />} />
+      <Route path="/aviso-legal" element={<AvisoLegal />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/cookies" element={<Cookies />} />
       {/* 👇 RUTA NUEVA: La carta de bebidas que verán los clientes */}
       <Route path="/bebidas" element={<Bebidas />} />
 
@@ -66,6 +75,8 @@ export default function App() {
           </RequireAdmin>
         }
       />
+      {/* 👇 EL FOOTER FUERA DE <Routes> PARA QUE SE VEA SIEMPRE 👇 */}
+      <Footer />
 
       {/* Fallback - Si la ruta no existe, vuelve al inicio */}
       <Route path="*" element={<Navigate to="/" replace />} />
